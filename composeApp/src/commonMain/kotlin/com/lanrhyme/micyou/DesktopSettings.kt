@@ -48,6 +48,7 @@ fun DesktopSettings(
 @Composable
 fun DesktopLayout(viewModel: MainViewModel, onClose: () -> Unit) {
     var currentSection by remember { mutableStateOf(SettingsSection.General) }
+    val strings = LocalAppStrings.current
     
     Row(modifier = Modifier.fillMaxSize()) {
         NavigationRail {
@@ -57,8 +58,8 @@ fun DesktopLayout(viewModel: MainViewModel, onClose: () -> Unit) {
                 NavigationRailItem(
                     selected = currentSection == section,
                     onClick = { currentSection = section },
-                    icon = { Icon(section.icon, contentDescription = section.label) },
-                    label = { Text(section.label) }
+                    icon = { Icon(section.icon, contentDescription = section.getLabel(strings)) },
+                    label = { Text(section.getLabel(strings)) }
                 )
             }
             Spacer(Modifier.weight(1f))
@@ -69,7 +70,7 @@ fun DesktopLayout(viewModel: MainViewModel, onClose: () -> Unit) {
         Box(modifier = Modifier.fillMaxSize().padding(24.dp)) {
             // Add a title for the section
             Column {
-                Text(currentSection.label, style = MaterialTheme.typography.headlineMedium)
+                Text(currentSection.getLabel(strings), style = MaterialTheme.typography.headlineMedium)
                 Spacer(Modifier.height(24.dp))
                 
                 // Use a scrollable column for content in case it overflows
@@ -85,25 +86,28 @@ fun DesktopLayout(viewModel: MainViewModel, onClose: () -> Unit) {
 
 @Composable
 fun MobileLayout(viewModel: MainViewModel, onClose: () -> Unit) {
+    val strings = LocalAppStrings.current
     LazyColumn(
         modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("设置", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                Text(strings.settingsTitle, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
                 IconButton(onClick = onClose) {
-                    Icon(Icons.Default.Close, "Close")
+                    Icon(Icons.Default.Close, strings.close)
                 }
             }
         }
         
         SettingsSection.entries.forEach { section ->
             // Skip "General" on mobile if it has no content (AutoStart is desktop only)
-            if (section == SettingsSection.General) return@forEach
+            // But now we have Language setting, so check if platform is Android AND section is General AND no other settings?
+            // Actually Language setting is for both. So General section is always relevant now.
+            // if (section == SettingsSection.General) return@forEach // Removed this check
 
             item {
-                Text(section.label, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text(section.getLabel(strings), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(8.dp))
                 SettingsContent(section, viewModel)
                 Spacer(Modifier.height(16.dp))
@@ -118,6 +122,7 @@ fun MobileLayout(viewModel: MainViewModel, onClose: () -> Unit) {
 fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
     val state by viewModel.uiState.collectAsState()
     val platform = getPlatform()
+    val strings = LocalAppStrings.current
 
     // 预设种子颜色
     val seedColors = listOf(
@@ -133,12 +138,42 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         when (section) {
             SettingsSection.General -> {
-                if (platform.type == PlatformType.Desktop) {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-                        Column(modifier = Modifier.padding(8.dp)) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        // Language Setting
+                        ListItem(
+                            headlineContent = { Text(strings.languageLabel) },
+                            trailingContent = {
+                                var expanded by remember { mutableStateOf(false) }
+                                Box {
+                                    TextButton(onClick = { expanded = true }) { 
+                                        Text(state.language.label) 
+                                    }
+                                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                        AppLanguage.entries.forEach { lang ->
+                                            DropdownMenuItem(
+                                                text = { Text(lang.label) },
+                                                onClick = { 
+                                                    viewModel.setLanguage(lang)
+                                                    expanded = false 
+                                                },
+                                                trailingIcon = {
+                                                    if (state.language == lang) {
+                                                        Icon(Icons.Default.Check, contentDescription = null)
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        )
+
+                        if (platform.type == PlatformType.Desktop) {
+                            HorizontalDivider()
                             ListItem(
-                                headlineContent = { Text("自动串流") },
-                                supportingContent = { Text("应用启动时自动开始串流") },
+                                headlineContent = { Text(strings.autoStartLabel) },
+                                supportingContent = { Text(strings.autoStartDesc) },
                                 trailingContent = {
                                     Switch(
                                         checked = state.autoStart,
@@ -149,20 +184,24 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                             )
                         }
                     }
-                } else {
-                    Text("暂无通用设置")
                 }
             }
             SettingsSection.Appearance -> {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
                      Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                         Text("主题模式", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                         Text(strings.themeLabel, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                          Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                              ThemeMode.entries.forEach { mode ->
                                  FilterChip(
                                      selected = state.themeMode == mode,
                                      onClick = { viewModel.setThemeMode(mode) },
-                                     label = { Text(mode.name) },
+                                     label = { 
+                                         Text(when(mode) {
+                                             ThemeMode.System -> strings.themeSystem
+                                             ThemeMode.Light -> strings.themeLight
+                                             ThemeMode.Dark -> strings.themeDark
+                                         }) 
+                                     },
                                      leadingIcon = {
                                          if (state.themeMode == mode) Icon(Icons.Filled.Check, null, modifier = Modifier.size(16.dp)) else null
                                      }
@@ -172,7 +211,7 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                          
                          HorizontalDivider()
 
-                         Text("主题颜色", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                         Text(strings.themeColorLabel, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                          Row(
                              horizontalArrangement = Arrangement.spacedBy(12.dp),
                              modifier = Modifier.fillMaxWidth()
@@ -201,7 +240,7 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                      Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
                         Column {
                             ListItem(
-                                headlineContent = { Text("采样率") },
+                                headlineContent = { Text(strings.sampleRateLabel) },
                                 trailingContent = {
                                      var expanded by remember { mutableStateOf(false) }
                                      Box {
@@ -216,7 +255,7 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                             )
                             HorizontalDivider()
                             ListItem(
-                                headlineContent = { Text("通道数") },
+                                headlineContent = { Text(strings.channelCountLabel) },
                                 trailingContent = {
                                      var expanded by remember { mutableStateOf(false) }
                                      Box {
@@ -231,7 +270,7 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                             )
                             HorizontalDivider()
                             ListItem(
-                                headlineContent = { Text("音频格式") },
+                                headlineContent = { Text(strings.audioFormatLabel) },
                                 trailingContent = {
                                      var expanded by remember { mutableStateOf(false) }
                                      Box {
@@ -252,7 +291,7 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                          Column(modifier = Modifier.padding(8.dp)) {
                             // Noise Suppression
                             ListItem(
-                                headlineContent = { Text("降噪 (Noise Suppression)") },
+                                headlineContent = { Text(strings.enableNsLabel) },
                                 trailingContent = { Switch(checked = state.enableNS, onCheckedChange = { viewModel.setEnableNS(it) }) },
                                 modifier = Modifier.clickable { viewModel.setEnableNS(!state.enableNS) }
                             )
@@ -272,13 +311,13 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                             
                             // AGC
                             ListItem(
-                                headlineContent = { Text("自动增益控制 (AGC)") },
+                                headlineContent = { Text(strings.enableAgcLabel) },
                                 trailingContent = { Switch(checked = state.enableAGC, onCheckedChange = { viewModel.setEnableAGC(it) }) },
                                 modifier = Modifier.clickable { viewModel.setEnableAGC(!state.enableAGC) }
                             )
                             if (state.enableAGC) {
                                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                    Text("目标电平: ${state.agcTargetLevel}", style = MaterialTheme.typography.bodySmall)
+                                    Text("${strings.agcTargetLabel}: ${state.agcTargetLevel}", style = MaterialTheme.typography.bodySmall)
                                     Slider(
                                         value = state.agcTargetLevel.toFloat(),
                                         onValueChange = { viewModel.setAgcTargetLevel(it.toInt()) },
@@ -291,13 +330,13 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
 
                             // VAD
                             ListItem(
-                                headlineContent = { Text("语音活动检测 (VAD)") },
+                                headlineContent = { Text(strings.enableVadLabel) },
                                 trailingContent = { Switch(checked = state.enableVAD, onCheckedChange = { viewModel.setEnableVAD(it) }) },
                                 modifier = Modifier.clickable { viewModel.setEnableVAD(!state.enableVAD) }
                             )
                             if (state.enableVAD) {
                                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                    Text("阈值: ${state.vadThreshold}", style = MaterialTheme.typography.bodySmall)
+                                    Text("${strings.vadThresholdLabel}: ${state.vadThreshold}", style = MaterialTheme.typography.bodySmall)
                                     Slider(
                                         value = state.vadThreshold.toFloat(),
                                         onValueChange = { viewModel.setVadThreshold(it.toInt()) },
@@ -310,13 +349,13 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
 
                             // Dereverb
                             ListItem(
-                                headlineContent = { Text("去混响 (Dereverb)") },
+                                headlineContent = { Text(strings.enableDereverbLabel) },
                                 trailingContent = { Switch(checked = state.enableDereverb, onCheckedChange = { viewModel.setEnableDereverb(it) }) },
                                 modifier = Modifier.clickable { viewModel.setEnableDereverb(!state.enableDereverb) }
                             )
                             if (state.enableDereverb) {
                                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                    Text("强度: ${((state.dereverbLevel * 100).toInt()) / 100f}", style = MaterialTheme.typography.bodySmall)
+                                    Text("${strings.dereverbLevelLabel}: ${((state.dereverbLevel * 100).toInt()) / 100f}", style = MaterialTheme.typography.bodySmall)
                                     Slider(
                                         value = state.dereverbLevel,
                                         onValueChange = { viewModel.setDereverbLevel(it) },
@@ -329,10 +368,10 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
 
                             // Amplification
                             ListItem(
-                                headlineContent = { Text("信号放大 (Amplification)") },
+                                headlineContent = { Text(strings.amplificationLabel) },
                                 supportingContent = {
                                     Column {
-                                        Text("倍数: ${((state.amplification * 10).toInt()) / 10f}x", style = MaterialTheme.typography.bodySmall)
+                                        Text("${strings.amplificationMultiplierLabel}: ${((state.amplification * 10).toInt()) / 10f}x", style = MaterialTheme.typography.bodySmall)
                                         Slider(
                                             value = state.amplification,
                                             onValueChange = { viewModel.setAmplification(it) },
@@ -352,11 +391,11 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                 if (showLicenseDialog) {
                     AlertDialog(
                         onDismissRequest = { showLicenseDialog = false },
-                        title = { Text("Open Source Libraries and Licenses") },
+                        title = { Text(strings.licensesTitle) },
                         text = {
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 item {
-                                    Text("MicYou 基于 AndroidMic 项目开发。", style = MaterialTheme.typography.bodyMedium)
+                                    Text(strings.basedOnAndroidMic, style = MaterialTheme.typography.bodyMedium)
                                     Spacer(Modifier.height(8.dp))
                                     HorizontalDivider()
                                     Spacer(Modifier.height(8.dp))
@@ -385,7 +424,7 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                         },
                         confirmButton = {
                             TextButton(onClick = { showLicenseDialog = false }) {
-                                Text("关闭")
+                                Text(strings.close)
                             }
                         }
                     )
@@ -394,13 +433,13 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
                     Column {
                         ListItem(
-                            headlineContent = { Text("开发者") },
+                            headlineContent = { Text(strings.developerLabel) },
                             supportingContent = { Text("LanRhyme") },
                             leadingContent = { Icon(Icons.Default.Person, null) }
                         )
                         HorizontalDivider()
                         ListItem(
-                            headlineContent = { Text("Github 仓库") },
+                            headlineContent = { Text(strings.githubRepoLabel) },
                             supportingContent = { 
                                 Text(
                                     "https://github.com/LanRhyme/MicYou",
@@ -413,14 +452,14 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                         )
                         HorizontalDivider()
                         ListItem(
-                            headlineContent = { Text("版本") },
+                            headlineContent = { Text(strings.versionLabel) },
                             supportingContent = { Text("1.0.0") },
                             leadingContent = { Icon(Icons.Default.Info, null) }
                         )
                         HorizontalDivider()
                         ListItem(
-                            headlineContent = { Text("开源许可") },
-                            supportingContent = { Text("查看使用的开源库") },
+                            headlineContent = { Text(strings.openSourceLicense) },
+                            supportingContent = { Text(strings.viewLibraries) },
                             leadingContent = { Icon(Icons.Default.Description, null) },
                             modifier = Modifier.clickable { showLicenseDialog = true }
                         )
@@ -431,10 +470,10 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                 
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                      Column(modifier = Modifier.padding(16.dp)) {
-                        Text("软件介绍", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text(strings.softwareIntro, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "MicYou 是一款开源的麦克风工具，可以将您的 Android 设备变成电脑的高质量麦克风，本软件基于 AndroidMic 进行开发，支持 Wi-Fi (TCP)、蓝牙 和 USB 连接，提供低延迟的音频传输体验。",
+                            strings.introText,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -442,5 +481,14 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                 }
             }
         }
+    }
+}
+
+fun SettingsSection.getLabel(strings: AppStrings): String {
+    return when (this) {
+        SettingsSection.General -> strings.generalSection
+        SettingsSection.Appearance -> strings.appearanceSection
+        SettingsSection.Audio -> strings.audioSection
+        SettingsSection.About -> strings.aboutSection
     }
 }

@@ -53,6 +53,8 @@ fun DesktopHome(
     val audioLevel by viewModel.audioLevels.collectAsState(initial = 0f)
     val platform = remember { getPlatform() }
     
+    val strings = LocalAppStrings.current
+    
     // Startup Animation
     var visible by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
@@ -71,7 +73,7 @@ fun DesktopHome(
     if (state.installMessage != null) {
         AlertDialog(
             onDismissRequest = { /* Prevent dismissal */ },
-            title = { Text("系统配置中") },
+            title = { Text(strings.systemConfigTitle) },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -111,7 +113,7 @@ fun DesktopHome(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("MicYou Desktop", style = MaterialTheme.typography.titleMedium)
                         SelectionContainer {
-                            Text("本机 IP: ${platform.ipAddress}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${strings.ipLabel}${platform.ipAddress}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
@@ -127,12 +129,12 @@ fun DesktopHome(
                                 modifier = Modifier.menuAnchor().fillMaxWidth(),
                                 readOnly = true,
                                 value = when (state.mode) {
-                                    ConnectionMode.Wifi -> "Wi-Fi"
-                                    ConnectionMode.Bluetooth -> "Bluetooth"
-                                    ConnectionMode.Usb -> "USB"
+                                    ConnectionMode.Wifi -> strings.modeWifi
+                                    ConnectionMode.Bluetooth -> strings.modeBluetooth
+                                    ConnectionMode.Usb -> strings.modeUsb
                                 },
                                 onValueChange = {},
-                                label = { Text("连接方式") },
+                                label = { Text(strings.connectionModeLabel) },
                                 trailingIcon = {
                                     ExposedDropdownMenuDefaults.TrailingIcon(
                                         expanded = expanded
@@ -149,21 +151,21 @@ fun DesktopHome(
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Wi-Fi (TCP)") },
+                                    text = { Text(strings.modeWifi) },
                                     onClick = {
                                         viewModel.setMode(ConnectionMode.Wifi)
                                         expanded = false
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Bluetooth") },
+                                    text = { Text(strings.modeBluetooth) },
                                     onClick = {
                                         viewModel.setMode(ConnectionMode.Bluetooth)
                                         expanded = false
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("USB (ADB)") },
+                                    text = { Text(strings.modeUsb) },
                                     onClick = {
                                         viewModel.setMode(ConnectionMode.Usb)
                                         expanded = false
@@ -176,7 +178,7 @@ fun DesktopHome(
                             OutlinedTextField(
                                 value = state.port,
                                 onValueChange = { viewModel.setPort(it) },
-                                label = { Text("端口") },
+                                label = { Text(strings.portLabel) },
                                 modifier = Modifier.fillMaxWidth(),
                                 textStyle = MaterialTheme.typography.bodySmall,
                                 singleLine = true,
@@ -249,11 +251,11 @@ fun DesktopHome(
                             shape = RoundedCornerShape(100.dp),
                         ) {
                             if (isConnecting) {
-                                Icon(Icons.Filled.Refresh, "连接中", modifier = Modifier.rotate(angle))
+                                Icon(Icons.Filled.Refresh, strings.statusConnecting, modifier = Modifier.rotate(angle))
                             } else {
                                 Icon(
                                     if (isRunning) Icons.Filled.MicOff else Icons.Filled.Mic,
-                                    contentDescription = if (isRunning) "停止" else "开始",
+                                    contentDescription = if (isRunning) strings.stop else strings.start,
                                     modifier = Modifier.size(32.dp)
                                 )
                             }
@@ -277,10 +279,10 @@ fun DesktopHome(
                         horizontalArrangement = Arrangement.End
                     ) {
                         IconButton(onClick = onMinimize, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Filled.Minimize, "最小化", modifier = Modifier.size(18.dp))
+                            Icon(Icons.Filled.Minimize, strings.minimize, modifier = Modifier.size(18.dp))
                         }
                         IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Filled.Close, "关闭", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Filled.Close, strings.close, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                         }
                     }
 
@@ -290,10 +292,10 @@ fun DesktopHome(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         val statusText = when(state.streamState) {
-                            StreamState.Idle -> "空闲"
-                            StreamState.Connecting -> "连接中..."
-                            StreamState.Streaming -> "正在传输"
-                            StreamState.Error -> "错误"
+                            StreamState.Idle -> strings.statusIdle
+                            StreamState.Connecting -> strings.statusConnecting
+                            StreamState.Streaming -> strings.statusStreaming
+                            StreamState.Error -> strings.statusError
                         }
                         
                         Text(statusText, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
@@ -324,7 +326,7 @@ fun DesktopHome(
                         ) {
                             Icon(
                                 if (state.isMuted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
-                                contentDescription = if (state.isMuted) "取消静音" else "静音",
+                                contentDescription = if (state.isMuted) strings.unmuteLabel else strings.muteLabel,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -333,7 +335,7 @@ fun DesktopHome(
                             onClick = onOpenSettings,
                             modifier = Modifier.size(40.dp)
                         ) {
-                            Icon(Icons.Filled.Settings, "设置", modifier = Modifier.size(20.dp))
+                            Icon(Icons.Filled.Settings, strings.settingsTitle, modifier = Modifier.size(20.dp))
                         }
                     }
                 }

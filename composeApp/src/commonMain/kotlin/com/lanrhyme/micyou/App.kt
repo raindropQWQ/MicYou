@@ -25,17 +25,25 @@ fun App(
     
     // Convert Long color to Color object
     val seedColorObj = androidx.compose.ui.graphics.Color(seedColor.toInt())
+    
+    val language by finalViewModel.uiState.collectAsState().let { state ->
+        derivedStateOf { state.value.language }
+    }
+    
+    val strings = getStrings(language)
 
-    AppTheme(themeMode = themeMode, seedColor = seedColorObj) {
-        if (platform.type == PlatformType.Android) {
-            MobileHome(finalViewModel)
-        } else {
-            DesktopHome(
-                viewModel = finalViewModel,
-                onMinimize = onMinimize,
-                onClose = onClose,
-                onOpenSettings = onOpenSettings
-            )
+    CompositionLocalProvider(LocalAppStrings provides strings) {
+        AppTheme(themeMode = themeMode, seedColor = seedColorObj) {
+            if (platform.type == PlatformType.Android) {
+                MobileHome(finalViewModel)
+            } else {
+                DesktopHome(
+                    viewModel = finalViewModel,
+                    onMinimize = onMinimize,
+                    onClose = onClose,
+                    onOpenSettings = onOpenSettings
+                )
+            }
         }
     }
 }

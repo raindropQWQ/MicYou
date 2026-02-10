@@ -55,7 +55,8 @@ data class AppUiState(
     
     val autoStart: Boolean = false,
     
-    val isMuted: Boolean = false
+    val isMuted: Boolean = false,
+    val language: AppLanguage = AppLanguage.System
 )
 
 class MainViewModel : ViewModel() {
@@ -109,6 +110,9 @@ class MainViewModel : ViewModel() {
         
         val savedAutoStart = settings.getBoolean("auto_start", false)
 
+        val savedLanguageName = settings.getString("language", AppLanguage.System.name)
+        val savedLanguage = try { AppLanguage.valueOf(savedLanguageName) } catch(e: Exception) { AppLanguage.System }
+
         _uiState.update { 
             it.copy(
                 mode = savedMode,
@@ -129,7 +133,8 @@ class MainViewModel : ViewModel() {
                 enableDereverb = savedDereverb,
                 dereverbLevel = savedDereverbLevel,
                 amplification = savedAmplification,
-                autoStart = savedAutoStart
+                autoStart = savedAutoStart,
+                language = savedLanguage
             ) 
         }
         
@@ -326,5 +331,10 @@ class MainViewModel : ViewModel() {
     fun setAutoStart(enabled: Boolean) {
         _uiState.update { it.copy(autoStart = enabled) }
         settings.putBoolean("auto_start", enabled)
+    }
+
+    fun setLanguage(language: AppLanguage) {
+        _uiState.update { it.copy(language = language) }
+        settings.putString("language", language.name)
     }
 }

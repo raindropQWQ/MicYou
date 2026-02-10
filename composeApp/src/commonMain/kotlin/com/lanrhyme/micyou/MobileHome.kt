@@ -42,6 +42,7 @@ fun MobileHome(viewModel: MainViewModel) {
     val audioLevel by viewModel.audioLevels.collectAsState(initial = 0f)
     val platform = remember { getPlatform() }
     val isClient = platform.type == PlatformType.Android
+    val strings = LocalAppStrings.current
     
     var showSettings by remember { mutableStateOf(false) }
 
@@ -58,9 +59,9 @@ fun MobileHome(viewModel: MainViewModel) {
             CenterAlignedTopAppBar(
                 title = { 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("MicYou", style = MaterialTheme.typography.titleMedium)
+                        Text(strings.appName, style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "IP: ${platform.ipAddress}", 
+                            "${strings.ipLabel}${platform.ipAddress}", 
                             style = MaterialTheme.typography.bodySmall, 
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -68,7 +69,7 @@ fun MobileHome(viewModel: MainViewModel) {
                 },
                 actions = {
                     IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "设置")
+                        Icon(Icons.Filled.Settings, contentDescription = strings.settingsTitle)
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -96,15 +97,15 @@ fun MobileHome(viewModel: MainViewModel) {
                 ) {
                     // Mode Selection
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("连接模式", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(strings.connectionModeLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                              val modes = listOf(
-                                 ConnectionMode.Wifi to "Wi-Fi",
-                                 ConnectionMode.Bluetooth to "蓝牙",
-                                 ConnectionMode.Usb to "USB"
+                                 ConnectionMode.Wifi to strings.modeWifi,
+                                 ConnectionMode.Bluetooth to strings.modeBluetooth,
+                                 ConnectionMode.Usb to strings.modeUsb
                              )
                              
                              modes.forEach { (mode, label) ->
@@ -132,9 +133,9 @@ fun MobileHome(viewModel: MainViewModel) {
                                 label = {
                                     Text(
                                         when (state.mode) {
-                                            ConnectionMode.Usb -> "目标 IP (127.0.0.1)"
-                                            ConnectionMode.Bluetooth -> "蓝牙设备地址 (MAC)"
-                                            else -> "目标 IP"
+                                            ConnectionMode.Usb -> strings.targetIpUsbLabel
+                                            ConnectionMode.Bluetooth -> strings.bluetoothAddressLabel
+                                            else -> strings.targetIpLabel
                                         }
                                     )
                                 },
@@ -148,7 +149,7 @@ fun MobileHome(viewModel: MainViewModel) {
                              OutlinedTextField(
                                 value = state.port,
                                 onValueChange = { viewModel.setPort(it) },
-                                label = { Text("端口") },
+                                label = { Text(strings.portLabel) },
                                 modifier = if (isClient) Modifier.width(100.dp) else Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
@@ -181,7 +182,7 @@ fun MobileHome(viewModel: MainViewModel) {
                      )
                      Spacer(modifier = Modifier.width(16.dp))
                      Text(
-                         text = if (state.isMuted) "取消静音" else "静音",
+                         text = if (state.isMuted) strings.unmuteLabel else strings.muteLabel,
                          style = MaterialTheme.typography.titleMedium,
                          color = if (state.isMuted) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface
                      )
@@ -201,10 +202,10 @@ fun MobileHome(viewModel: MainViewModel) {
                     // Status Text at top of card
                     Box(modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp)) {
                         val (statusColor, statusText) = when(state.streamState) {
-                            StreamState.Idle -> MaterialTheme.colorScheme.onSurfaceVariant to "点击开始"
-                            StreamState.Connecting -> MaterialTheme.colorScheme.primary to "连接中..."
-                            StreamState.Streaming -> MaterialTheme.colorScheme.primary to "正在传输音频"
-                            StreamState.Error -> MaterialTheme.colorScheme.error to (state.errorMessage ?: "连接错误")
+                            StreamState.Idle -> MaterialTheme.colorScheme.onSurfaceVariant to strings.clickToStart
+                            StreamState.Connecting -> MaterialTheme.colorScheme.primary to strings.statusConnecting
+                            StreamState.Streaming -> MaterialTheme.colorScheme.primary to strings.statusStreaming
+                            StreamState.Error -> MaterialTheme.colorScheme.error to (state.errorMessage ?: strings.statusError)
                         }
                         
                         Surface(
@@ -289,13 +290,13 @@ fun MobileHome(viewModel: MainViewModel) {
                         if (isConnecting) {
                             Icon(
                                 Icons.Filled.Refresh, 
-                                "连接中", 
+                                strings.statusConnecting, 
                                 modifier = Modifier.size(40.dp).rotate(angle)
                             )
                         } else {
                             Icon(
                                 if (isRunning) Icons.Filled.MicOff else Icons.Filled.Mic,
-                                contentDescription = if (isRunning) "停止" else "开始",
+                                contentDescription = if (isRunning) strings.stop else strings.start,
                                 modifier = Modifier.size(40.dp)
                             )
                         }

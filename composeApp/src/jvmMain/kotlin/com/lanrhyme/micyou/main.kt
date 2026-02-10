@@ -63,13 +63,19 @@ fun main() {
             val seedColor by viewModel.uiState.collectAsState().let { state ->
                 derivedStateOf { state.value.seedColor }
             }
+            val language by viewModel.uiState.collectAsState().let { state ->
+                derivedStateOf { state.value.language }
+            }
             val seedColorObj = androidx.compose.ui.graphics.Color(seedColor.toInt())
+            val strings = getStrings(language)
 
-            AppTheme(themeMode = themeMode, seedColor = seedColorObj) {
-                DesktopSettings(
-                    viewModel = viewModel,
-                    onClose = { isSettingsOpen = false }
-                )
+            CompositionLocalProvider(LocalAppStrings provides strings) {
+                AppTheme(themeMode = themeMode, seedColor = seedColorObj) {
+                    DesktopSettings(
+                        viewModel = viewModel,
+                        onClose = { isSettingsOpen = false }
+                    )
+                }
             }
         }
     }
