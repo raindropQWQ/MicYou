@@ -21,7 +21,9 @@ data class AppUiState(
     val streamState: StreamState = StreamState.Idle,
     val ipAddress: String = "192.168.1.5", // 默认 IP
     val port: String = "6000",
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val themeMode: ThemeMode = ThemeMode.System,
+    val seedColor: Long = 0xFF6750A4 // Default purple
 )
 
 class MainViewModel : ViewModel() {
@@ -83,5 +85,13 @@ class MainViewModel : ViewModel() {
 
     fun setPort(port: String) {
         _uiState.update { it.copy(port = port) }
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        _uiState.update { it.copy(themeMode = mode) }
+    }
+
+    fun setSeedColor(color: Long) {
+        _uiState.update { it.copy(seedColor = color) }
     }
 }
