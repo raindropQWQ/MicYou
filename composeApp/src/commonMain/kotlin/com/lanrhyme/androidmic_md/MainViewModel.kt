@@ -31,8 +31,31 @@ class MainViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AppUiState())
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
     val audioLevels = audioEngine.audioLevels
+    private val settings = SettingsFactory.getSettings()
 
     init {
+        // Load settings
+        val savedModeName = settings.getString("connection_mode", ConnectionMode.Wifi.name)
+        val savedMode = try { ConnectionMode.valueOf(savedModeName) } catch(e: Exception) { ConnectionMode.Wifi }
+        
+        val savedIp = settings.getString("ip_address", "192.168.1.5")
+        val savedPort = settings.getString("port", "6000")
+        
+        val savedThemeModeName = settings.getString("theme_mode", ThemeMode.System.name)
+        val savedThemeMode = try { ThemeMode.valueOf(savedThemeModeName) } catch(e: Exception) { ThemeMode.System }
+        
+        val savedSeedColor = settings.getLong("seed_color", 0xFF6750A4)
+
+        _uiState.update { 
+            it.copy(
+                mode = savedMode,
+                ipAddress = savedIp,
+                port = savedPort,
+                themeMode = savedThemeMode,
+                seedColor = savedSeedColor
+            ) 
+        }
+
         viewModelScope.launch {
             audioEngine.streamState.collect { state ->
                 _uiState.update { it.copy(streamState = state) }
@@ -77,21 +100,26 @@ class MainViewModel : ViewModel() {
 
     fun setMode(mode: ConnectionMode) {
         _uiState.update { it.copy(mode = mode) }
+        settings.putString("connection_mode", mode.name)
     }
     
     fun setIp(ip: String) {
         _uiState.update { it.copy(ipAddress = ip) }
+        settings.putString("ip_address", ip)
     }
 
     fun setPort(port: String) {
         _uiState.update { it.copy(port = port) }
+        settings.putString("port", port)
     }
 
     fun setThemeMode(mode: ThemeMode) {
         _uiState.update { it.copy(themeMode = mode) }
+        settings.putString("theme_mode", mode.name)
     }
 
     fun setSeedColor(color: Long) {
         _uiState.update { it.copy(seedColor = color) }
+        settings.putLong("seed_color", color)
     }
 }

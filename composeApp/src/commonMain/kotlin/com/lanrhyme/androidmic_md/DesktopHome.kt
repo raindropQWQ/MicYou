@@ -22,6 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+
 @Composable
 fun DesktopHome(
     viewModel: MainViewModel,
@@ -113,7 +121,8 @@ fun DesktopHome(
                         StreamState.Streaming -> "正在串流"
                         StreamState.Error -> "错误"
                     }
-                    Text("状态: $statusText", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    val statusColor = if (state.streamState == StreamState.Connecting) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                    Text("状态: $statusText", style = MaterialTheme.typography.bodyMedium, color = statusColor)
 
                     if (state.errorMessage != null) {
                         Spacer(modifier = Modifier.height(4.dp))
@@ -129,6 +138,7 @@ fun DesktopHome(
             ) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     val isRunning = state.streamState == StreamState.Streaming
+                    val isConnecting = state.streamState == StreamState.Connecting
                     
                     // 背景可视化 (简单模拟)
                     if (isRunning) {
@@ -144,19 +154,54 @@ fun DesktopHome(
                     // 开关按钮
                     val buttonSize by animateDpAsState(if (isRunning) 72.dp else 64.dp)
                     val buttonColor by animateColorAsState(
-                        if (isRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        when {
+                            isRunning -> MaterialTheme.colorScheme.error
+                            isConnecting -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.primary
+                        }
                     )
                     
-                    IconButton(
-                        onClick = { viewModel.toggleStream() },
-                        modifier = Modifier.size(buttonSize).background(buttonColor, CircleShape)
-                    ) {
-                        Icon(
-                            if (isRunning) Icons.Filled.MicOff else Icons.Filled.Mic,
-                            contentDescription = "Toggle Stream",
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
+                    // Rotation Animation for Connecting
+                    val infiniteTransition = rememberInfiniteTransition()
+                    val angle by infiniteTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 360f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(1000, easing = LinearEasing)
+                        ),
+                        label = "ConnectionSpinner"
+                    )
+                    val rotation = if (isConnecting) angle else 0f
+                    
+                    var rippleTrigger by remember { mutableStateOf(0) }
+
+                    Box(contentAlignment = Alignment.Center) {
+                        WaterRippleEffect(
+                            trigger = rippleTrigger,
+                            modifier = Modifier.size(buttonSize),
+                            color = Color.White
                         )
+
+                        IconButton(
+                            onClick = { 
+                                rippleTrigger++
+                                viewModel.toggleStream() 
+                            },
+                            modifier = Modifier.size(buttonSize).background(buttonColor, CircleShape)
+                        ) {
+                            val icon = when {
+                                isRunning -> Icons.Filled.MicOff
+                                isConnecting -> Icons.Filled.Refresh
+                                else -> Icons.Filled.Mic
+                            }
+                            
+                            Icon(
+                                icon,
+                                contentDescription = "Toggle Stream",
+                                modifier = Modifier.size(32.dp).rotate(rotation),
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                     }
                 }
             }

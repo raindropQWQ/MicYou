@@ -81,7 +81,9 @@ fun DesktopSettings(
             
             HorizontalDivider()
             
-            // 端口设置
+            // 端口设置 (Moved to Home Screen, but kept here if needed, or removed to avoid duplication)
+            // For now, let's remove it as it is on the Home screen.
+            /*
             Text("连接设置", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = state.port,
@@ -89,6 +91,7 @@ fun DesktopSettings(
                 label = { Text("监听端口") },
                 modifier = Modifier.fillMaxWidth()
             )
+            */
             
             Spacer(modifier = Modifier.weight(1f))
             
