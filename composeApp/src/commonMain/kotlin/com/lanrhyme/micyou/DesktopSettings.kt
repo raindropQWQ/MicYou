@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -205,8 +207,8 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
                      Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                          Text(strings.themeLabel, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                             ThemeMode.entries.forEach { mode ->
+                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                             items(ThemeMode.entries) { mode ->
                                  FilterChip(
                                      selected = state.themeMode == mode,
                                      onClick = { viewModel.setThemeMode(mode) },

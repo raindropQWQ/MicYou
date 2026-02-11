@@ -102,6 +102,11 @@ actual class AudioEngine actual constructor() {
     private var scratchResultBuffer: ByteArray = ByteArray(0)
     private var rnnoiseFrameLeft: ShortArray = ShortArray(0)
     private var rnnoiseFrameRight: ShortArray = ShortArray(0)
+    private var playbackRatio: Double = 1.0
+    private var playbackRatioIntegral: Double = 0.0
+    private var resamplePosFrames: Double = 0.0
+    private var resamplePrevFrame: ShortArray = ShortArray(0)
+    private var scratchResampledShorts: ShortArray = ShortArray(0)
 
     actual val installProgress: Flow<String?> = VBCableManager.installProgress
     
@@ -521,8 +526,7 @@ actual class AudioEngine actual constructor() {
             }
         }
         
-        // --- Audio Processing Chain ---
-        val processedShorts = shorts
+        var processedShorts = shorts
 
         var speechProbability: Float? = null
 
@@ -658,14 +662,116 @@ actual class AudioEngine actual constructor() {
             }
         }
 
+        val line = monitoringLine
+        if (line != null) {
+            val bytesPerSecond = (line.format.sampleRate.toInt() * line.format.channels * 2).coerceAtLeast(1)
+            val queuedBytes = (line.bufferSize - line.available()).coerceAtLeast(0)
+            val queuedMs = queuedBytes * 1000L / bytesPerSecond.toLong()
+            playbackRatio = updatePlaybackRatio(queuedMs, playbackRatioIntegral).also {
+                playbackRatioIntegral = it.second
+            }.first
+
+            if (queuedMs >= 2000) {
+                line.flush()
+                resamplePosFrames = 0.0
+            }
+        }
+
+        var processedShortCount = processedShorts.size
+        if (kotlin.math.abs(playbackRatio - 1.0) >= 0.00005) {
+            val inputForResample = processedShorts
+            processedShortCount = resampleInterleavedShorts(processedShorts = inputForResample, channelCount = channelCount, ratio = playbackRatio)
+            processedShorts = scratchResampledShorts
+        }
+
         // Convert back to ByteArray
-        val neededBytes = processedShorts.size * 2
+        val neededBytes = processedShortCount * 2
         if (scratchResultBuffer.size != neededBytes) {
             scratchResultBuffer = ByteArray(neededBytes)
         }
         val resultBuffer = scratchResultBuffer
-        ByteBuffer.wrap(resultBuffer).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(processedShorts)
+        ByteBuffer.wrap(resultBuffer).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(processedShorts, 0, processedShortCount)
         return resultBuffer
+    }
+
+    private fun updatePlaybackRatio(
+        queuedMs: Long,
+        currentIntegral: Double
+    ): Pair<Double, Double> {
+        val targetMs = 140.0
+        val errorMs = queuedMs.toDouble() - targetMs
+        val kP = 0.00002
+        val kI = 0.00000015
+        val maxAdjust = 0.004
+
+        var integral = (currentIntegral + errorMs).coerceIn(-6000.0, 6000.0)
+        val adjust = (errorMs * kP + integral * kI).coerceIn(-maxAdjust, maxAdjust)
+        val ratio = (1.0 + adjust).coerceIn(1.0 - maxAdjust, 1.0 + maxAdjust)
+        return ratio to integral
+    }
+
+    private fun resampleInterleavedShorts(processedShorts: ShortArray, channelCount: Int, ratio: Double): Int {
+        if (channelCount <= 0) return processedShorts.size
+        val inputFrames = processedShorts.size / channelCount
+        if (inputFrames <= 1) return processedShorts.size
+
+        if (resamplePrevFrame.size != channelCount) {
+            resamplePrevFrame = ShortArray(channelCount)
+            for (c in 0 until channelCount) {
+                resamplePrevFrame[c] = processedShorts[c]
+            }
+            resamplePosFrames = 1.0
+        }
+
+        val effectiveFrames = inputFrames + 1
+        var outFrames = 0
+        var pos = resamplePosFrames
+
+        val estimatedOutFrames = ((inputFrames.toDouble() / ratio) + 4.0).toInt().coerceAtLeast(8)
+        val neededShorts = estimatedOutFrames * channelCount
+        if (scratchResampledShorts.size < neededShorts) {
+            scratchResampledShorts = ShortArray(neededShorts)
+        }
+
+        fun sample(frameIndex: Int, channel: Int): Int {
+            return if (frameIndex == 0) {
+                resamplePrevFrame[channel].toInt()
+            } else {
+                processedShorts[(frameIndex - 1) * channelCount + channel].toInt()
+            }
+        }
+
+        while (true) {
+            val base = pos.toInt()
+            if (base + 1 >= effectiveFrames) break
+            val frac = pos - base.toDouble()
+
+            val outBase = outFrames * channelCount
+            for (c in 0 until channelCount) {
+                val s0 = sample(base, c)
+                val s1 = sample(base + 1, c)
+                val v = (s0 + (s1 - s0) * frac).toInt().coerceIn(-32768, 32767)
+                scratchResampledShorts[outBase + c] = v.toShort()
+            }
+
+            outFrames++
+            pos += ratio
+
+            val required = (outFrames + 1) * channelCount
+            if (required > scratchResampledShorts.size) {
+                scratchResampledShorts = scratchResampledShorts.copyOf((scratchResampledShorts.size * 2).coerceAtLeast(required))
+            }
+        }
+
+        val lastFrameOffset = (inputFrames - 1) * channelCount
+        for (c in 0 until channelCount) {
+            resamplePrevFrame[c] = processedShorts[lastFrameOffset + c]
+        }
+
+        resamplePosFrames = pos - inputFrames.toDouble()
+
+        val outShorts = outFrames * channelCount
+        return outShorts
     }
 
     private fun adbExecutableCandidates(): List<String> {
