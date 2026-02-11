@@ -60,7 +60,8 @@ data class AppUiState(
     val autoStart: Boolean = false,
     
     val isMuted: Boolean = false,
-    val language: AppLanguage = AppLanguage.System
+    val language: AppLanguage = AppLanguage.System,
+    val useDynamicColor: Boolean = false
 )
 
 class MainViewModel : ViewModel() {
@@ -119,6 +120,8 @@ class MainViewModel : ViewModel() {
         val savedLanguageName = settings.getString("language", AppLanguage.System.name)
         val savedLanguage = try { AppLanguage.valueOf(savedLanguageName) } catch(e: Exception) { AppLanguage.System }
 
+        val savedUseDynamicColor = settings.getBoolean("use_dynamic_color", false)
+
         _uiState.update { 
             it.copy(
                 mode = savedMode,
@@ -141,7 +144,8 @@ class MainViewModel : ViewModel() {
                 amplification = savedAmplification,
                 autoStart = savedAutoStart,
                 enableStreamingNotification = savedEnableStreamingNotification,
-                language = savedLanguage
+                language = savedLanguage,
+                useDynamicColor = savedUseDynamicColor
             ) 
         }
         
@@ -359,6 +363,11 @@ class MainViewModel : ViewModel() {
         _uiState.update { it.copy(enableStreamingNotification = enabled) }
         settings.putBoolean("enable_streaming_notification", enabled)
         audioEngine.setStreamingNotificationEnabled(enabled)
+    }
+
+    fun setUseDynamicColor(enable: Boolean) {
+        settings.putBoolean("use_dynamic_color", enable)
+        _uiState.update { it.copy(useDynamicColor = enable) }
     }
 
     fun setLanguage(language: AppLanguage) {

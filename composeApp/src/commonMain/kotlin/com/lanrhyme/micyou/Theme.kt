@@ -182,6 +182,7 @@ val AppShapes = androidx.compose.material3.Shapes(
 fun AppTheme(
     themeMode: ThemeMode = ThemeMode.System,
     seedColor: Color = DefaultSeedColor,
+    useDynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val isDark = when (themeMode) {
@@ -190,7 +191,8 @@ fun AppTheme(
         ThemeMode.Dark -> true
     }
 
-    val colorScheme = generateColorScheme(seedColor, isDark)
+    val dynamicScheme = if (useDynamicColor) getDynamicColorScheme(isDark) else null
+    val colorScheme = dynamicScheme ?: generateColorScheme(seedColor, isDark)
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -1,5 +1,8 @@
 package com.lanrhyme.micyou
 
+import androidx.compose.material3.ColorScheme
+import androidx.compose.runtime.Composable
+
 enum class PlatformType {
     Android, Desktop
 }
@@ -15,4 +18,7 @@ expect fun getPlatform(): Platform
 expect fun uninstallVBCable()
 
 expect fun getAppVersion(): String
+
+@Composable
+expect fun getDynamicColorScheme(isDark: Boolean): ColorScheme?
 

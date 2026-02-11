@@ -1,5 +1,7 @@
 package com.lanrhyme.micyou
 
+import androidx.compose.material3.ColorScheme
+import androidx.compose.runtime.Composable
 import java.net.InetAddress
 
 class JVMPlatform: Platform {
@@ -25,5 +27,10 @@ actual fun getAppVersion(): String {
     val fromProperty = System.getProperty("app.version")
     if (!fromProperty.isNullOrBlank()) return fromProperty
     return "dev"
+}
+
+@Composable
+actual fun getDynamicColorScheme(isDark: Boolean): ColorScheme? {
+    return null
 }
 

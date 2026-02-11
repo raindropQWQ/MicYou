@@ -80,7 +80,8 @@ data class AppStrings(
     val basedOnAndroidMic: String,
     val developerLabel: String,
     val githubRepoLabel: String,
-    val versionLabel: String
+    val versionLabel: String,
+    val useDynamicColorLabel: String
 )
 
 val EnStrings = AppStrings(
@@ -151,7 +152,8 @@ val EnStrings = AppStrings(
     basedOnAndroidMic = "MicYou is based on AndroidMic.",
     developerLabel = "Developer",
     githubRepoLabel = "GitHub Repository",
-    versionLabel = "Version"
+    versionLabel = "Version",
+    useDynamicColorLabel = "Use System Dynamic Color"
 )
 
 val ZhStrings = AppStrings(
@@ -222,7 +224,8 @@ val ZhStrings = AppStrings(
     basedOnAndroidMic = "MicYou 基于 AndroidMic 项目开发。",
     developerLabel = "开发者",
     githubRepoLabel = "Github 仓库",
-    versionLabel = "版本"
+    versionLabel = "版本",
+    useDynamicColorLabel = "使用系统动态颜色(莫奈取色)"
 )
 
 val LocalAppStrings = staticCompositionLocalOf { ZhStrings }

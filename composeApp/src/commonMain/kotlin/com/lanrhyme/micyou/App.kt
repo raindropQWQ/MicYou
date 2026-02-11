@@ -22,6 +22,9 @@ fun App(
     val seedColor by finalViewModel.uiState.collectAsState().let { state ->
         derivedStateOf { state.value.seedColor }
     }
+    val useDynamicColor by finalViewModel.uiState.collectAsState().let { state ->
+        derivedStateOf { state.value.useDynamicColor }
+    }
     
     // Convert Long color to Color object
     val seedColorObj = androidx.compose.ui.graphics.Color(seedColor.toInt())
@@ -33,7 +36,7 @@ fun App(
     val strings = getStrings(language)
 
     CompositionLocalProvider(LocalAppStrings provides strings) {
-        AppTheme(themeMode = themeMode, seedColor = seedColorObj) {
+        AppTheme(themeMode = themeMode, seedColor = seedColorObj, useDynamicColor = useDynamicColor) {
             if (platform.type == PlatformType.Android) {
                 MobileHome(finalViewModel)
             } else {

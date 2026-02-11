@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
@@ -228,10 +229,25 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                          
                          HorizontalDivider()
 
+                         if (platform.type == PlatformType.Android) {
+                             ListItem(
+                                 headlineContent = { Text(strings.useDynamicColorLabel) },
+                                 trailingContent = {
+                                     Switch(
+                                         checked = state.useDynamicColor,
+                                         onCheckedChange = { viewModel.setUseDynamicColor(it) }
+                                     )
+                                 },
+                                 modifier = Modifier.clickable { viewModel.setUseDynamicColor(!state.useDynamicColor) }
+                             )
+                             HorizontalDivider()
+                         }
+
                          Text(strings.themeColorLabel, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                         val isSeedColorEnabled = !state.useDynamicColor
                          LazyRow(
                              horizontalArrangement = Arrangement.spacedBy(12.dp),
-                             modifier = Modifier.fillMaxWidth()
+                             modifier = Modifier.fillMaxWidth().then(if(!isSeedColorEnabled) Modifier.alpha(0.5f) else Modifier)
                          ) {
                              items(seedColors) { colorHex ->
                                  val color = Color(colorHex.toInt())
@@ -239,7 +255,7 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                                      modifier = Modifier
                                          .size(40.dp)
                                          .background(color, CircleShape)
-                                         .clickable { viewModel.setSeedColor(colorHex) }
+                                         .clickable(enabled = isSeedColorEnabled) { viewModel.setSeedColor(colorHex) }
                                          .then(
                                              if (state.seedColor == colorHex) {
                                                  Modifier.padding(2.dp).background(MaterialTheme.colorScheme.onSurface, CircleShape).padding(2.dp).background(color, CircleShape)
