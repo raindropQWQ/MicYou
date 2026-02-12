@@ -514,6 +514,13 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                         )
                         HorizontalDivider()
                         ListItem(
+                            headlineContent = { Text(strings.contributorsLabel) },
+                            supportingContent = { Text(strings.contributorsDesc) },
+                            leadingContent = { Icon(Icons.Default.Group, null) },
+                            modifier = Modifier.clickable { uriHandler.openUri("https://github.com/LanRhyme/MicYou/graphs/contributors") }
+                        )
+                        HorizontalDivider()
+                        ListItem(
                             headlineContent = { Text(strings.versionLabel) },
                             supportingContent = { Text(getAppVersion()) },
                             leadingContent = { Icon(Icons.Default.Info, null) }
