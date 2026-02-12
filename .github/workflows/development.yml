@@ -62,7 +62,30 @@ jobs:
 
     - name: Install NSIS
       shell: pwsh
-      run: choco install nsis -y
+      run: |
+        $retryCount = 0
+        $maxRetries = 3
+        while ($retryCount -lt $maxRetries) {
+          try {
+            choco install nsis -y --no-progress
+            if ($LASTEXITCODE -eq 0) { break }
+          } catch {}
+          $retryCount++
+          if ($retryCount -lt $maxRetries) {
+            Write-Host "Chocolatey install failed, retrying in 30 seconds... ($retryCount/$maxRetries)"
+            Start-Sleep -Seconds 30
+          } else {
+            Write-Host "Chocolatey failed after $maxRetries attempts. Trying winget..."
+            winget install NSIS.NSIS -e --accept-package-agreements --accept-source-agreements
+          }
+        }
+        # Add NSIS to PATH if it was installed but not detected
+        $nsisPath = "C:\Program Files (x86)\NSIS"
+        if (Test-Path "$nsisPath\makensis.exe") {
+          Write-Host "Adding $nsisPath to PATH"
+          $env:Path += ";$nsisPath"
+          "PATH=$env:Path" | Out-File -FilePath $env:GITHUB_ENV -Append
+        }
 
     - name: Build Windows Artifacts
       shell: pwsh
