@@ -253,7 +253,10 @@ actual class AudioEngine actual constructor() {
                                         return@launch
                                     }
                                 }
-                                serverSocket = aSocket(selectorManager!!).tcp().bind("0.0.0.0", port = port)
+                                serverSocket = aSocket(selectorManager!!).tcp().bind("0.0.0.0", port = port) {
+                                    reuseAddress = true
+                                    // 服务器端也启用 keepAlive
+                                }
                                 Logger.i("AudioEngine", "Listening on port $port (0.0.0.0)")
                                 
                                 while (isActive) {
@@ -274,7 +277,9 @@ actual class AudioEngine actual constructor() {
                                         }
                                     } finally {
                                         activeSocket = null
-                                        socket.close()
+                                        try {
+                                            socket.close()
+                                        } catch (e: Exception) {}
                                         Logger.i("AudioEngine", "TCP connection closed, waiting for new connection")
                                         _state.value = StreamState.Connecting
                                     }
@@ -354,7 +359,13 @@ actual class AudioEngine actual constructor() {
                 agcEnvelope = 0f
 
                 while (currentCoroutineContext().isActive) {
-                    val magic = input.readInt()
+                    val magic = try {
+                        input.readInt()
+                    } catch (e: Exception) {
+                        Logger.d("AudioEngine", "Reader loop: connection closed by remote: ${e.message}")
+                        break
+                    }
+                    
                     if (magic != PACKET_MAGIC) {
                         var resyncMagic = magic
                         while (currentCoroutineContext().isActive) {

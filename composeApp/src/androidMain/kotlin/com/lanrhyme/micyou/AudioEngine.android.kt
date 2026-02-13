@@ -226,7 +226,14 @@ actual class AudioEngine actual constructor() {
                             val targetIp = if (mode == ConnectionMode.Usb) "127.0.0.1" else ip
                             Logger.i("AudioEngine", "Connecting via TCP to $targetIp:$port")
                             val socketBuilder = aSocket(selectorManager)
-                            val socket = socketBuilder.tcp().connect(targetIp, port)
+                            val socket = socketBuilder.tcp().connect(targetIp, port) {
+                                // 优化 Socket 参数以应对 Wi-Fi 环境下的连接不稳
+                                keepAlive = true
+                                // 允许更长的等待时间
+                                socketTimeout = 10000 
+                                // 禁用 Nagle 算法，降低音频包延迟
+                                tcpNoDelay = true
+                            }
                             Logger.i("AudioEngine", "TCP connected to $targetIp:$port")
                             input = socket.openReadChannel()
                             output = socket.openWriteChannel(autoFlush = true)
@@ -293,7 +300,15 @@ actual class AudioEngine actual constructor() {
                             Logger.d("AudioEngine", "Reader loop started")
                             try {
                                 while (isActive) {
-                                    val magic = input.readInt()
+                                    val magic = try {
+                                        input.readInt()
+                                    } catch (e: Exception) {
+                                        if (isActive && _state.value == StreamState.Streaming) {
+                                            Logger.d("AudioEngine", "Reader loop: socket closed or EOF: ${e.message}")
+                                        }
+                                        break // Exit loop on EOF/IOException
+                                    }
+                                    
                                     if (magic != PACKET_MAGIC) {
                                         Logger.w("AudioEngine", "Invalid Magic: ${magic.toString(16)}")
                                         throw java.io.IOException("Invalid Packet Magic")
