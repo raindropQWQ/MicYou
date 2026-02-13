@@ -22,8 +22,15 @@ fun main() {
     // 设置编码属性以尝试修复 AWT 乱码
     System.setProperty("file.encoding", "UTF-8")
     System.setProperty("sun.jnu.encoding", "UTF-8")
-    // 强制 AWT 使用 Unicode
+    // 强制 AWT 使用 Unicode 并解决部分渲染问题
     System.setProperty("sun.java2d.noddraw", "true")
+    System.setProperty("sun.java2d.d3d", "false") // 禁用 D3D 尝试解决部分系统黑屏
+    
+    // 修复 Windows 10 上可能出现的透明/黑色窗口问题 (渲染兼容性)
+    // 优先尝试使用 SOFTWARE_FAST，这在老旧设备或驱动不兼容的 Win10 上最稳定
+    System.setProperty("skiko.renderApi", "SOFTWARE_FAST")
+    System.setProperty("skiko.vsync", "false") // 禁用 vsync 解决部分显卡导致的渲染延迟
+    System.setProperty("skiko.fps.enabled", "false")
 
     // 设置全局 Swing 属性以修复托盘菜单乱码
     try {
