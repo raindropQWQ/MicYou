@@ -419,3 +419,187 @@ tasks.register<PackageWindowsNsisTask>("packageWindowsNsis") {
 
     iconPath.set(windowsIconIcoFile.absolutePath)
 }
+
+// ==================== 无 JRE 打包任务 ====================
+// 这些任务创建不捆绑 JRE 的发行版，依赖用户系统上已安装的 Java
+
+// 获取运行时配置的 Provider
+val runtimeClasspathProvider = provider {
+    configurations.findByName("jvmRuntimeClasspath")
+        ?: configurations.findByName("runtimeClasspath")
+        ?: throw GradleException("Could not find runtime classpath configuration")
+}
+
+val appNameProvider = provider { project.property("project.name").toString() }
+val appVersionProvider = provider { project.property("project.version").toString() }
+val mainClassProvider = provider { "com.lanrhyme.micyou.MainKt" }
+
+// 复制启动脚本到输出目录 - Windows BAT
+tasks.register<Copy>("copyNoJreBatScript") {
+    group = "compose desktop"
+    description = "Copies Windows BAT launch script for no-JRE distribution"
+
+    val appName = appNameProvider.get()
+    val appVersion = appVersionProvider.get()
+    val mainClass = mainClassProvider.get()
+    val outputDir = layout.buildDirectory.dir("no-jre/binaries/main/app/$appName")
+
+    from(layout.projectDirectory.file("scripts/no-jre/{{APP_NAME}}.bat"))
+    into(outputDir)
+    rename { "${appName}.bat" }
+
+    filter { line ->
+        line.replace("{{APP_NAME}}", appName)
+            .replace("{{APP_VERSION}}", appVersion)
+            .replace("{{MAIN_CLASS}}", mainClass)
+    }
+}
+
+// 复制启动脚本到输出目录 - PowerShell
+tasks.register<Copy>("copyNoJrePs1Script") {
+    group = "compose desktop"
+    description = "Copies PowerShell launch script for no-JRE distribution"
+
+    val appName = appNameProvider.get()
+    val appVersion = appVersionProvider.get()
+    val mainClass = mainClassProvider.get()
+    val outputDir = layout.buildDirectory.dir("no-jre/binaries/main/app/$appName")
+
+    from(layout.projectDirectory.file("scripts/no-jre/{{APP_NAME}}.ps1"))
+    into(outputDir)
+    rename { "${appName}.ps1" }
+
+    filter { line ->
+        line.replace("{{APP_NAME}}", appName)
+            .replace("{{APP_VERSION}}", appVersion)
+            .replace("{{MAIN_CLASS}}", mainClass)
+    }
+}
+
+// 复制启动脚本到输出目录 - Shell
+tasks.register<Copy>("copyNoJreShScript") {
+    group = "compose desktop"
+    description = "Copies Shell launch script for no-JRE distribution"
+
+    val appName = appNameProvider.get()
+    val appVersion = appVersionProvider.get()
+    val mainClass = mainClassProvider.get()
+    val outputDir = layout.buildDirectory.dir("no-jre/binaries/main/app/$appName")
+
+    from(layout.projectDirectory.file("scripts/no-jre/{{APP_NAME}}.sh"))
+    into(outputDir)
+    rename { "${appName}.sh" }
+
+    // 设置文件权限为可执行 (755)
+    filePermissions {
+        user {
+            read = true
+            write = true
+            execute = true
+        }
+        group {
+            read = true
+            execute = true
+        }
+        other {
+            read = true
+            execute = true
+        }
+    }
+
+    filter { line ->
+        line.replace("{{APP_NAME}}", appName)
+            .replace("{{APP_VERSION}}", appVersion)
+            .replace("{{MAIN_CLASS}}", mainClass)
+    }
+}
+
+// 复制应用程序依赖和类文件（不包含 JRE）
+tasks.register<Copy>("copyNoJreAppFiles") {
+    group = "compose desktop"
+    description = "Copies application files for no-JRE distribution"
+
+    val appName = appNameProvider.get()
+    val outputDir = layout.buildDirectory.dir("no-jre/binaries/main/app/$appName")
+    val runtimeClasspath = runtimeClasspathProvider.get()
+
+    // 复制所有依赖 JAR
+    from(runtimeClasspath) {
+        into("lib")
+    }
+
+    // 复制应用程序自己的 JAR
+    from(tasks.named<Jar>("jvmJar").get().archiveFile) {
+        into("lib")
+        rename { "${appName}.jar" }
+    }
+
+    into(outputDir)
+}
+
+// Windows 无 JRE ZIP 包
+tasks.register<Zip>("packageWindowsNoJreZip") {
+    group = "compose desktop"
+    description = "Creates a Windows distribution without bundled JRE"
+
+    dependsOn("copyNoJreBatScript", "copyNoJrePs1Script", "copyNoJreShScript", "copyNoJreAppFiles", "generateWindowsIconIco")
+
+    val appName = appNameProvider.get()
+    val version = appVersionProvider.get()
+    val appDir = layout.buildDirectory.dir("no-jre/binaries/main/app/$appName")
+
+    from(appDir)
+    into(appName)
+
+    destinationDirectory.set(layout.buildDirectory.dir("distributions/no-jre"))
+    archiveBaseName.set("${appName}-windows-no-jre")
+    archiveVersion.set(version)
+}
+
+// Linux 无 JRE Tar.GZ 包
+tasks.register<Tar>("packageLinuxNoJreTarGz") {
+    group = "compose desktop"
+    description = "Creates a Linux distribution without bundled JRE"
+
+    dependsOn("copyNoJreBatScript", "copyNoJrePs1Script", "copyNoJreShScript", "copyNoJreAppFiles")
+
+    val appName = appNameProvider.get()
+    val version = appVersionProvider.get()
+    val appDir = layout.buildDirectory.dir("no-jre/binaries/main/app/$appName")
+
+    from(appDir)
+    into(appName)
+
+    destinationDirectory.set(layout.buildDirectory.dir("distributions/no-jre"))
+    archiveBaseName.set("${appName}-linux-no-jre")
+    archiveVersion.set(version)
+    compression = Compression.GZIP
+}
+
+// macOS 无 JRE Tar.GZ 包
+tasks.register<Tar>("packageMacosNoJreTarGz") {
+    group = "compose desktop"
+    description = "Creates a macOS distribution without bundled JRE"
+
+    dependsOn("copyNoJreBatScript", "copyNoJrePs1Script", "copyNoJreShScript", "copyNoJreAppFiles")
+
+    val appName = appNameProvider.get()
+    val version = appVersionProvider.get()
+    val appDir = layout.buildDirectory.dir("no-jre/binaries/main/app/$appName")
+
+    from(appDir)
+    into(appName)
+
+    destinationDirectory.set(layout.buildDirectory.dir("distributions/no-jre"))
+    archiveBaseName.set("${appName}-macos-no-jre")
+    archiveVersion.set(version)
+    compression = Compression.GZIP
+}
+
+// 打包所有无 JRE 版本
+tasks.register("packageNoJreAll") {
+    group = "compose desktop"
+    description = "Creates all platform distributions without bundled JRE"
+
+    dependsOn("packageWindowsNoJreZip", "packageLinuxNoJreTarGz", "packageMacosNoJreTarGz")
+}
