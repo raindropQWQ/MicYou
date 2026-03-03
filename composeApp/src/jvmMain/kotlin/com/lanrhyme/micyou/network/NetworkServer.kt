@@ -1,6 +1,7 @@
 package com.lanrhyme.micyou.network
 
 import com.lanrhyme.micyou.*
+import com.lanrhyme.micyou.platform.PlatformInfo
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.*
@@ -64,7 +65,11 @@ class NetworkServer(
             serverJob = launch(Dispatchers.IO) {
                 try {
                     if (mode == ConnectionMode.Bluetooth) {
-                        runBluetoothServer()
+                        if (PlatformInfo.isLinux) {
+                            runLinuxBluetoothServer()
+                        } else {
+                            runBluetoothServer()
+                        }
                     } else {
                         runTcpServer(port)
                     }
@@ -84,7 +89,35 @@ class NetworkServer(
         }
     }
 
+    private var linuxBlueZServer: LinuxBlueZServer? = null
+
+    private suspend fun runLinuxBluetoothServer() {
+        val server = LinuxBlueZServer(
+            onAudioPacketReceived = onAudioPacketReceived,
+            onMuteStateChanged = onMuteStateChanged
+        )
+        linuxBlueZServer = server
+
+        coroutineScope {
+            launch {
+                server.state.collect { state ->
+                    _state.value = state
+                }
+            }
+            
+            launch {
+                server.lastError.collect { error ->
+                    _lastError.value = error
+                }
+            }
+        }
+
+        server.start()
+    }
+
     suspend fun stop() {
+        linuxBlueZServer?.stop()
+        linuxBlueZServer = null
         serverJob?.cancel()
         serverJob?.join()
         cleanup()
@@ -92,6 +125,7 @@ class NetworkServer(
 
     suspend fun sendMuteState(muted: Boolean) {
         activeHandler?.sendMuteState(muted)
+        linuxBlueZServer?.sendMuteState(muted)
     }
 
     private suspend fun runTcpServer(port: Int) {
