@@ -431,6 +431,25 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )
                         }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = cardOpacity * 0.5f))
+                        ) {
+                            ListItem(
+                                headlineContent = { Text(strings.floatingWindowLabel) },
+                                supportingContent = { Text(strings.floatingWindowDesc) },
+                                trailingContent = {
+                                    Switch(
+                                        checked = state.floatingWindowEnabled,
+                                        onCheckedChange = { viewModel.setFloatingWindowEnabled(it) }
+                                    )
+                                },
+                                modifier = Modifier.clickable { viewModel.setFloatingWindowEnabled(!state.floatingWindowEnabled) },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                            )
+                        }
                     }
                 }
             }

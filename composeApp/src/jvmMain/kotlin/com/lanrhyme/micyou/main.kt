@@ -1,8 +1,11 @@
 package com.lanrhyme.micyou
 
 import androidx.compose.foundation.window.WindowDraggableArea
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -11,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.AwtWindow
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
@@ -24,6 +28,7 @@ import micyou.composeapp.generated.resources.app_icon
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 import java.awt.Font
+import java.awt.Toolkit
 import javax.swing.UIManager
 import kotlin.system.exitProcess
 
@@ -316,6 +321,56 @@ fun main() {
                         )
                     }
                 }
+            }
+        }
+
+        val floatingWindowEnabled by viewModel.uiState.collectAsState().let { state ->
+            derivedStateOf { state.value.floatingWindowEnabled }
+        }
+
+        if (floatingWindowEnabled) {
+            FloatingMicWindowContainer(
+                viewModel = viewModel,
+                strings = strings
+            )
+        }
+    }
+}
+
+@Composable
+private fun FloatingMicWindowContainer(
+    viewModel: MainViewModel,
+    strings: AppStrings
+) {
+    val screenSize = Toolkit.getDefaultToolkit().screenSize
+    
+    val uiState by viewModel.uiState.collectAsState()
+    val themeMode = uiState.themeMode
+    val seedColor = uiState.seedColor
+    val seedColorObj = androidx.compose.ui.graphics.Color(seedColor.toInt())
+
+    Window(
+        onCloseRequest = { viewModel.setFloatingWindowEnabled(false) },
+        title = "",
+        undecorated = true,
+        transparent = true,
+        resizable = false,
+        alwaysOnTop = true
+    ) {
+        val window = this.window
+        
+        LaunchedEffect(Unit) {
+            window.setSize(36, 36)
+            window.setLocation(screenSize.width - 60, 60)
+        }
+        
+        CompositionLocalProvider(LocalAppStrings provides strings) {
+            AppTheme(themeMode = themeMode, seedColor = seedColorObj) {
+                FloatingMicWindow(
+                    viewModel = viewModel, 
+                    window = window,
+                    onClose = { viewModel.setFloatingWindowEnabled(false) }
+                )
             }
         }
     }

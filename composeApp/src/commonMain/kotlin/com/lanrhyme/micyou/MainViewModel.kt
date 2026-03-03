@@ -86,7 +86,10 @@ data class AppUiState(
     val visualizerStyle: VisualizerStyle = VisualizerStyle.VolumeRing,
     
     // Background Settings
-    val backgroundSettings: BackgroundSettings = BackgroundSettings()
+    val backgroundSettings: BackgroundSettings = BackgroundSettings(),
+    
+    // Floating Window Settings (Desktop only)
+    val floatingWindowEnabled: Boolean = false
 )
 
 enum class CloseAction(val label: String) {
@@ -175,6 +178,8 @@ class MainViewModel : ViewModel() {
         val savedBackgroundBlur = settings.getFloat("background_blur", 0f)
         val savedCardOpacity = settings.getFloat("card_opacity", 1f)
         val savedEnableHazeEffect = settings.getBoolean("enable_haze_effect", false)
+        
+        val savedFloatingWindowEnabled = settings.getBoolean("floating_window_enabled", false)
 
         _uiState.update { 
             it.copy(
@@ -212,7 +217,8 @@ class MainViewModel : ViewModel() {
                     blurRadius = savedBackgroundBlur,
                     cardOpacity = savedCardOpacity,
                     enableHazeEffect = savedEnableHazeEffect
-                )
+                ),
+                floatingWindowEnabled = savedFloatingWindowEnabled
             ) 
         }
         
@@ -354,6 +360,11 @@ class MainViewModel : ViewModel() {
     fun setVisualizerStyle(style: VisualizerStyle) {
         _uiState.update { it.copy(visualizerStyle = style) }
         settings.putString("visualizer_style", style.name)
+    }
+
+    fun setFloatingWindowEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(floatingWindowEnabled = enabled) }
+        settings.putBoolean("floating_window_enabled", enabled)
     }
 
     fun handleCloseRequest(onExit: () -> Unit, onHide: () -> Unit) {
