@@ -101,7 +101,10 @@ data class AppUiState(
     val backgroundSettings: BackgroundSettings = BackgroundSettings(),
     
     // Floating Window Settings (Desktop only)
-    val floatingWindowEnabled: Boolean = false
+    val floatingWindowEnabled: Boolean = false,
+    
+    // First Launch Dialog
+    val showFirstLaunchDialog: Boolean = false
 )
 
 enum class CloseAction(val label: String) {
@@ -195,6 +198,13 @@ class MainViewModel : ViewModel() {
         
         val savedFloatingWindowEnabled = settings.getBoolean("floating_window_enabled", false)
         val savedAutoCheckUpdate = settings.getBoolean("auto_check_update", true)
+        
+        val hasLaunchedBefore = settings.getBoolean("has_launched_before", false)
+        val isDesktop = getPlatform().type == PlatformType.Desktop
+        val shouldShowFirstLaunchDialog = !hasLaunchedBefore && isDesktop
+        if (shouldShowFirstLaunchDialog) {
+            settings.putBoolean("has_launched_before", true)
+        }
 
         _uiState.update { 
             it.copy(
@@ -236,7 +246,8 @@ class MainViewModel : ViewModel() {
                     enableHazeEffect = savedEnableHazeEffect
                 ),
                 floatingWindowEnabled = savedFloatingWindowEnabled,
-                autoCheckUpdate = savedAutoCheckUpdate
+                autoCheckUpdate = savedAutoCheckUpdate,
+                showFirstLaunchDialog = shouldShowFirstLaunchDialog
             ) 
         }
         
@@ -315,6 +326,12 @@ class MainViewModel : ViewModel() {
                 updateDownloadProgress = 0f,
                 updateErrorMessage = null
             )
+        }
+    }
+
+    fun dismissFirstLaunchDialog() {
+        _uiState.update {
+            it.copy(showFirstLaunchDialog = false)
         }
     }
 
