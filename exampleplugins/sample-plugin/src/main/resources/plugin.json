@@ -1,8 +1,8 @@
 {
   "id": "com.example.sample-plugin",
-  "name": "LanRhyme",
+  "name": "Sample Plugin",
   "version": "1.0.1",
-  "author": "LanRhyme",
+  "author": "MicYou Team",
   "description": "A sample plugin demonstrating the MicYou Plugin API. Shows how to implement plugin lifecycle, UI components, and settings.",
   "tags": ["utility", "demo"],
   "platform": "desktop",
