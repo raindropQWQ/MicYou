@@ -15,13 +15,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,37 +49,10 @@ fun PluginSettingsContent(
     val strings = LocalAppStrings.current
     val platform = getPlatform()
     
-    var showImportDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<PluginInfo?>(null) }
     var showPlatformWarning by remember { mutableStateOf<PluginInfo?>(null) }
-    var isImporting by remember { mutableStateOf(false) }
-    var filterPlatform by remember { mutableStateOf<PluginPlatform?>(null) }
     
     val isMobile = platform.type.name == "Android"
-    
-    val filteredPlugins = remember(state.plugins, filterPlatform) {
-        when (filterPlatform) {
-            null -> state.plugins
-            PluginPlatform.MOBILE -> state.plugins.filter { 
-                it.manifest.platform == PluginPlatform.MOBILE || it.manifest.platform == PluginPlatform.BOTH 
-            }
-            PluginPlatform.DESKTOP -> state.plugins.filter { 
-                it.manifest.platform == PluginPlatform.DESKTOP || it.manifest.platform == PluginPlatform.BOTH 
-            }
-            PluginPlatform.BOTH -> state.plugins
-        }
-    }
-    
-    val incompatiblePlugins = remember(state.plugins, isMobile) {
-        state.plugins.filter { plugin ->
-            val targetPlatform = plugin.manifest.platform
-            when (targetPlatform) {
-                PluginPlatform.MOBILE -> !isMobile
-                PluginPlatform.DESKTOP -> isMobile
-                PluginPlatform.BOTH -> false
-            }
-        }
-    }
     
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -89,7 +60,18 @@ fun PluginSettingsContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
-                onClick = { showImportDialog = true },
+                onClick = {
+                    val filePath = openPluginFileChooser()
+                    filePath?.let { path ->
+                        viewModel.importPlugin(path) { result ->
+                            result.onSuccess {
+                                viewModel.showSnackbar(strings.pluginImportSuccess)
+                            }.onFailure { error ->
+                                viewModel.showSnackbar(strings.pluginImportFailed.format(error.message ?: "Unknown error"))
+                            }
+                        }
+                    }
+                },
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -98,73 +80,7 @@ fun PluginSettingsContent(
             }
         }
         
-        if (state.plugins.isNotEmpty()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.FilterList,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                FilterChip(
-                    selected = filterPlatform == null,
-                    onClick = { filterPlatform = null },
-                    label = { Text("All") }
-                )
-                FilterChip(
-                    selected = filterPlatform == PluginPlatform.DESKTOP,
-                    onClick = { filterPlatform = PluginPlatform.DESKTOP },
-                    label = { Text("Desktop") }
-                )
-                FilterChip(
-                    selected = filterPlatform == PluginPlatform.MOBILE,
-                    onClick = { filterPlatform = PluginPlatform.MOBILE },
-                    label = { Text("Mobile") }
-                )
-                
-                Spacer(Modifier.weight(1f))
-                
-                if (incompatiblePlugins.isNotEmpty()) {
-                    Text(
-                        "${incompatiblePlugins.size} incompatible",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        }
-        
-        if (filteredPlugins.isEmpty() && state.plugins.isNotEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = cardOpacity * 0.5f)
-                ),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        Icons.Default.FilterList,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "No plugins match the filter",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else if (state.plugins.isEmpty()) {
+        if (state.plugins.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -193,9 +109,10 @@ fun PluginSettingsContent(
             }
         } else {
             LazyColumn(
+                modifier = Modifier.weight(1f, fill = false),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filteredPlugins, key = { it.manifest.id }) { pluginInfo ->
+                items(state.plugins, key = { it.manifest.id }) { pluginInfo ->
                     PluginItem(
                         pluginInfo = pluginInfo,
                         currentPlatform = platform.type,
@@ -224,22 +141,6 @@ fun PluginSettingsContent(
                 }
             }
         }
-    }
-    
-    if (showImportDialog) {
-        PluginImportDialog(
-            isImporting = isImporting,
-            onDismiss = { showImportDialog = false },
-            onImport = { filePath ->
-                isImporting = true
-                viewModel.importPlugin(filePath) { result ->
-                    isImporting = false
-                    if (result.isSuccess) {
-                        showImportDialog = false
-                    }
-                }
-            }
-        )
     }
     
     if (showDeleteDialog != null) {
@@ -416,10 +317,3 @@ private fun TagSurface(tag: String) {
         )
     }
 }
-
-@Composable
-expect fun PluginImportDialog(
-    isImporting: Boolean,
-    onDismiss: () -> Unit,
-    onImport: (filePath: String) -> Unit
-)

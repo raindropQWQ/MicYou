@@ -24,8 +24,12 @@ class PluginManager(private val pluginsDir: File) {
     }
 
     fun scanPlugins() {
+        Logger.i("PluginManager", "Scanning plugins in: ${pluginsDir.absolutePath}")
         val pluginList = mutableListOf<PluginInfo>()
-        pluginsDir.listFiles()?.filter { it.isDirectory }?.forEach { pluginDir ->
+        val dirs = pluginsDir.listFiles()?.filter { it.isDirectory }
+        Logger.d("PluginManager", "Found ${dirs?.size ?: 0} directories")
+        dirs?.forEach { pluginDir ->
+            Logger.d("PluginManager", "Checking directory: ${pluginDir.name}")
             val manifestFile = File(pluginDir, "plugin.json")
             if (manifestFile.exists()) {
                 try {
@@ -40,18 +44,24 @@ class PluginManager(private val pluginsDir: File) {
                             iconPath = if (iconFile.exists()) iconFile.absolutePath else null
                         )
                     )
+                    Logger.i("PluginManager", "Loaded plugin: ${manifest.id}")
                 } catch (e: Exception) {
                     Logger.e("PluginManager", "Failed to load plugin manifest from ${pluginDir.name}", e)
                 }
+            } else {
+                Logger.w("PluginManager", "No plugin.json found in ${pluginDir.name}")
             }
         }
         _plugins.value = pluginList
+        Logger.i("PluginManager", "Scan complete, found ${pluginList.size} plugins")
     }
 
     fun importPlugin(pluginFile: File): Result<PluginInfo> {
+        Logger.i("PluginManager", "Importing plugin from: ${pluginFile.absolutePath}")
         return try {
             val tempDir = File(pluginsDir, "temp_${System.currentTimeMillis()}")
             tempDir.mkdirs()
+            Logger.d("PluginManager", "Created temp directory: ${tempDir.absolutePath}")
 
             ZipFile(pluginFile).use { zip ->
                 zip.entries().asSequence().forEach { entry ->
@@ -64,29 +74,69 @@ class PluginManager(private val pluginsDir: File) {
                     }
                 }
             }
+            Logger.d("PluginManager", "Extracted zip file to temp directory")
 
-            val manifestFile = File(tempDir, "plugin.json")
+            var manifestFile = File(tempDir, "plugin.json")
+            var pluginRootDir = tempDir
+
             if (!manifestFile.exists()) {
+                Logger.d("PluginManager", "plugin.json not in root, searching recursively")
+                val found = findPluginManifest(tempDir)
+                if (found != null) {
+                    manifestFile = found.second
+                    pluginRootDir = found.first
+                    Logger.d("PluginManager", "Found plugin.json in: ${pluginRootDir.name}")
+                }
+            }
+
+            if (!manifestFile.exists()) {
+                Logger.e("PluginManager", "plugin.json not found in plugin package")
                 tempDir.deleteRecursively()
-                return Result.failure(Exception("plugin.json not found"))
+                return Result.failure(Exception("plugin.json not found - make sure the plugin package contains a valid plugin.json file"))
             }
 
             val manifest = json.decodeFromString<PluginManifest>(manifestFile.readText())
+            Logger.i("PluginManager", "Found plugin: ${manifest.id} - ${manifest.name}")
             val targetDir = File(pluginsDir, manifest.id.replace(".", "_"))
 
             if (targetDir.exists()) {
+                Logger.w("PluginManager", "Plugin ${manifest.id} already installed")
                 tempDir.deleteRecursively()
                 return Result.failure(Exception("Plugin ${manifest.id} already installed"))
             }
 
-            tempDir.renameTo(targetDir)
+            val jarFile = File(pluginRootDir, "plugin.jar")
+            val hasJarInRoot = jarFile.exists()
+            
+            if (!hasJarInRoot) {
+                val jarsInDir = pluginRootDir.listFiles()?.filter { it.extension == "jar" }
+                if (!jarsInDir.isNullOrEmpty()) {
+                    val sourceJar = jarsInDir.first()
+                    sourceJar.copyTo(jarFile, overwrite = true)
+                    Logger.d("PluginManager", "Renamed ${sourceJar.name} to plugin.jar")
+                } else if (pluginFile.extension == "jar") {
+                    pluginFile.copyTo(jarFile, overwrite = true)
+                    Logger.d("PluginManager", "Copied source JAR as plugin.jar")
+                }
+            }
+
+            val renamed = pluginRootDir.renameTo(targetDir)
+            if (!renamed) {
+                Logger.w("PluginManager", "renameTo failed, using copy instead")
+                targetDir.mkdirs()
+                pluginRootDir.copyRecursively(targetDir, overwrite = true)
+            }
+            tempDir.deleteRecursively()
+            Logger.i("PluginManager", "Moved plugin to: ${targetDir.absolutePath}")
             scanPlugins()
 
             val pluginInfo = _plugins.value.find { it.manifest.id == manifest.id }
                 ?: return Result.failure(Exception("Failed to find imported plugin"))
 
+            Logger.i("PluginManager", "Successfully imported plugin: ${manifest.id}")
             Result.success(pluginInfo)
         } catch (e: Exception) {
+            Logger.e("PluginManager", "Failed to import plugin: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -196,5 +246,21 @@ class PluginManager(private val pluginsDir: File) {
     private fun setPluginEnabled(pluginId: String, enabled: Boolean) {
         val prefs = Preferences.userRoot().node("micyou/plugins")
         prefs.putBoolean("${pluginId}_enabled", enabled)
+    }
+
+    private fun findPluginManifest(dir: File): Pair<File, File>? {
+        val manifestFile = File(dir, "plugin.json")
+        if (manifestFile.exists()) {
+            return Pair(dir, manifestFile)
+        }
+        
+        dir.listFiles()?.filter { it.isDirectory }?.forEach { subDir ->
+            val result = findPluginManifest(subDir)
+            if (result != null) {
+                return result
+            }
+        }
+        
+        return null
     }
 }
