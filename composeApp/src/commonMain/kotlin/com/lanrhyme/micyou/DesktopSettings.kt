@@ -203,6 +203,11 @@ fun DesktopSettings(
     val isDarkTheme = isDarkThemeActive(state.themeMode)
     val forcePureBlackBackground = state.oledPureBlack && isDarkTheme
     
+    // Haze state for background effect
+    val hazeState = if (state.backgroundSettings.enableHazeEffect && state.backgroundSettings.hasCustomBackground) {
+        rememberHazeState()
+    } else null
+    
     // 页面进入动画状态
     var visible by remember { mutableStateOf(false) }
     var contentVisible by remember { mutableStateOf(false) }
@@ -250,28 +255,25 @@ fun DesktopSettings(
             CustomBackground(
                 settings = state.backgroundSettings,
                 modifier = Modifier.fillMaxSize(),
+                hazeState = hazeState,
                 forcePureBlackBackground = forcePureBlackBackground
             )
             
             if (platform.type == PlatformType.Desktop) {
-                DesktopLayout(viewModel, onClose, contentVisible)
+                DesktopLayout(viewModel, onClose, contentVisible, hazeState)
             } else {
-                MobileLayout(viewModel, onClose)
+                MobileLayout(viewModel, onClose, hazeState)
             }
         }
     }
 }
 
 @Composable
-fun DesktopLayout(viewModel: MainViewModel, onClose: () -> Unit, contentVisible: Boolean) {
+fun DesktopLayout(viewModel: MainViewModel, onClose: () -> Unit, contentVisible: Boolean, hazeState: HazeState?) {
     var currentSection by remember { mutableStateOf(SettingsSection.General) }
     val strings = LocalAppStrings.current
     val state by viewModel.uiState.collectAsState()
     val cardOpacity = state.backgroundSettings.cardOpacity
-    
-    val hazeState = if (state.backgroundSettings.enableHazeEffect && state.backgroundSettings.hasCustomBackground) {
-        rememberHazeState()
-    } else null
     
     Row(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -613,7 +615,7 @@ private fun AnimatedSettingsCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MobileLayout(viewModel: MainViewModel, onClose: () -> Unit) {
+fun MobileLayout(viewModel: MainViewModel, onClose: () -> Unit, hazeState: HazeState?) {
     val strings = LocalAppStrings.current
     val state by viewModel.uiState.collectAsState()
     val cardOpacity = state.backgroundSettings.cardOpacity
@@ -669,23 +671,44 @@ fun MobileLayout(viewModel: MainViewModel, onClose: () -> Unit) {
                     ),
                     exit = fadeOut(tween(200))
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = cardOpacity)
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                section.getLabel(strings),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            SettingsContent(section, viewModel)
+                    if (state.backgroundSettings.enableHazeEffect && hazeState != null) {
+                        HazeSurface(
+                            hazeState = hazeState,
+                            enabled = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = cardOpacity * 0.7f)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    section.getLabel(strings),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                SettingsContent(section, viewModel)
+                            }
+                        }
+                    } else {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = cardOpacity)
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    section.getLabel(strings),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                SettingsContent(section, viewModel)
+                            }
                         }
                     }
                 }
