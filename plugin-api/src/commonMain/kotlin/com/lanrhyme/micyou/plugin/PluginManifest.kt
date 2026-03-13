@@ -9,7 +9,7 @@ data class PluginManifest(
     val name: String,
     val version: String,
     val author: String,
-    val description: String,
+    val description: String = "",
     val tags: List<String> = emptyList(),
     val platform: PluginPlatform = PluginPlatform.BOTH,
     @SerialName("minApiVersion")

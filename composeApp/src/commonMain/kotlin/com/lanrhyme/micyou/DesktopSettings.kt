@@ -17,17 +17,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.TextSnippet
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Extension
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.People
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -39,7 +44,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -54,7 +58,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -64,27 +67,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import kotlinx.coroutines.delay
-import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Mic
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.People
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Settings
 
 /**
  * 可复用的设置项容器组件
@@ -233,7 +224,7 @@ fun DesktopLayout(viewModel: MainViewModel, onClose: () -> Unit) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 0.dp, bottom = 12.dp),
+                    .padding(top = 12.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 item {
@@ -303,7 +294,7 @@ fun DesktopLayout(viewModel: MainViewModel, onClose: () -> Unit) {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = cardOpacity * 0.7f)
         ) {
-            Column(modifier = Modifier.padding(top = 8.dp, start = 20.dp, end = 20.dp, bottom = 20.dp)) {
+            Column(modifier = Modifier.padding(top = 12.dp, start = 20.dp, end = 20.dp, bottom = 20.dp)) {
                 Text(currentSection.getLabel(strings), style = MaterialTheme.typography.headlineMedium)
                 Spacer(Modifier.height(8.dp))
                 
