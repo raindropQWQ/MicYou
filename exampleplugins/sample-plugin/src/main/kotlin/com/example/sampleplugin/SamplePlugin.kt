@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lanrhyme.micyou.plugin.*
+import androidx.compose.ui.unit.Dp
 
 class SamplePlugin : Plugin, PluginUIProvider {
 
@@ -29,6 +30,12 @@ class SamplePlugin : Plugin, PluginUIProvider {
     )
 
     override val hasMainWindow: Boolean = true
+    
+    // 自定义窗口大小和标题
+    override val windowWidth: Dp get() = 500.dp
+    override val windowHeight: Dp get() = 600.dp
+    override val windowTitle: String get() = "Sample Plugin - Demo Window"
+    override val windowResizable: Boolean get() = true
 
     override fun onLoad(context: PluginContext) {
         this.context = context

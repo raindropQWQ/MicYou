@@ -870,4 +870,8 @@ class MainViewModel : ViewModel() {
     fun getPluginUIProvider(pluginId: String): Any? {
         return pluginManager?.getPluginUIProvider(pluginId)
     }
+    
+    fun getPluginSettingsProvider(pluginId: String): Any? {
+        return pluginManager?.getPluginSettingsProvider(pluginId)
+    }
 }

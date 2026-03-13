@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -49,8 +50,28 @@ fun PluginSettingsContent(
     
     var showDeleteDialog by remember { mutableStateOf<PluginInfo?>(null) }
     var showPlatformWarning by remember { mutableStateOf<PluginInfo?>(null) }
+    var activePluginWindow by remember { mutableStateOf<String?>(null) }
+    var activePluginSettings by remember { mutableStateOf<String?>(null) }
     
     val isMobile = platform.type.name == "Android"
+    
+    // 显示插件窗口
+    activePluginWindow?.let { pluginId ->
+        OpenPluginWindow(
+            pluginId = pluginId,
+            viewModel = viewModel,
+            onClose = { activePluginWindow = null }
+        )
+    }
+    
+    // 显示插件设置
+    activePluginSettings?.let { pluginId ->
+        OpenPluginSettings(
+            pluginId = pluginId,
+            viewModel = viewModel,
+            onClose = { activePluginSettings = null }
+        )
+    }
     
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -111,6 +132,8 @@ fun PluginSettingsContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 state.plugins.forEach { pluginInfo ->
+                    val uiProvider = viewModel.getPluginUIProvider(pluginInfo.manifest.id) as? com.lanrhyme.micyou.plugin.PluginUIProvider
+                    val settingsProvider = viewModel.getPluginSettingsProvider(pluginInfo.manifest.id)
                     PluginItem(
                         pluginInfo = pluginInfo,
                         currentPlatform = platform.type,
@@ -133,6 +156,12 @@ fun PluginSettingsContent(
                             }
                         },
                         onDelete = { showDeleteDialog = pluginInfo },
+                        onOpenWindow = if (uiProvider?.hasMainWindow == true) {
+                            { activePluginWindow = pluginInfo.manifest.id }
+                        } else null,
+                        onOpenSettings = if (settingsProvider != null) {
+                            { activePluginSettings = pluginInfo.manifest.id }
+                        } else null,
                         strings = strings,
                         cardOpacity = cardOpacity
                     )
@@ -198,6 +227,8 @@ private fun PluginItem(
     currentPlatform: PlatformType,
     onToggleEnabled: () -> Unit,
     onDelete: () -> Unit,
+    onOpenWindow: (() -> Unit)?,
+    onOpenSettings: (() -> Unit)?,
     strings: AppStrings,
     cardOpacity: Float = 1f
 ) {
@@ -245,11 +276,23 @@ private fun PluginItem(
                     )
                 }
                 
-                Switch(
-                    checked = pluginInfo.isEnabled,
-                    onCheckedChange = { onToggleEnabled() },
-                    enabled = isCompatible && pluginInfo.isLoaded || !pluginInfo.isEnabled
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // 打开窗口按钮（仅当插件有窗口且已启用时显示）
+                    if (onOpenWindow != null && pluginInfo.isEnabled && pluginInfo.isLoaded) {
+                        Button(
+                            onClick = onOpenWindow,
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text("打开", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                    
+                    Switch(
+                        checked = pluginInfo.isEnabled,
+                        onCheckedChange = { onToggleEnabled() },
+                        enabled = isCompatible && pluginInfo.isLoaded || !pluginInfo.isEnabled
+                    )
+                }
             }
             
             Spacer(Modifier.height(4.dp))
@@ -281,7 +324,20 @@ private fun PluginItem(
                     }
                 }
                 
-                Spacer(Modifier.weight(1f))
+                // 配置按钮（仅当插件有设置且已启用时显示）
+                if (onOpenSettings != null && pluginInfo.isEnabled && pluginInfo.isLoaded) {
+                    IconButton(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
                 
                 IconButton(
                     onClick = onDelete,
@@ -298,6 +354,20 @@ private fun PluginItem(
         }
     }
 }
+
+@Composable
+expect fun OpenPluginWindow(
+    pluginId: String,
+    viewModel: MainViewModel,
+    onClose: () -> Unit
+)
+
+@Composable
+expect fun OpenPluginSettings(
+    pluginId: String,
+    viewModel: MainViewModel,
+    onClose: () -> Unit
+)
 
 @Composable
 private fun TagSurface(tag: String) {

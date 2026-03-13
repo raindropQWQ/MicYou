@@ -19,13 +19,29 @@ MicYou 插件系统允许开发者扩展应用功能。插件可以：
 ```kotlin
 // build.gradle.kts
 plugins {
-    kotlin("jvm") version "1.9.22"
-    kotlin("plugin.serialization") version "1.9.22"
+    kotlin("jvm") version "2.2.20"
+    kotlin("plugin.serialization") version "2.2.20"
+    kotlin("plugin.compose") version "2.2.20"
+    id("org.jetbrains.compose") version "1.7.3"
+}
+
+group = "com.example"
+version = "1.0.0"
+
+repositories {
+    mavenCentral()
+    google()
 }
 
 dependencies {
-    compileOnly("com.lanrhyme.micyou:plugin-api:1.0.0")
+    compileOnly(files("path/to/plugin-api-jvm.jar"))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    
+    // Compose
+    implementation(compose.runtime)
+    implementation(compose.foundation)
+    implementation(compose.material3)
+    implementation(compose.ui)
 }
 ```
 
@@ -155,6 +171,12 @@ interface PluginUIProvider {
     val hasMainWindow: Boolean get() = false
     val hasDialog: Boolean get() = false
     
+    // 窗口配置（仅桌面端）
+    val windowWidth: Dp get() = 600.dp
+    val windowHeight: Dp get() = 500.dp
+    val windowTitle: String get() = "Plugin Window"
+    val windowResizable: Boolean get() = true
+    
     @Composable
     fun MainWindow(onClose: () -> Unit) {}
     
@@ -176,19 +198,34 @@ interface PluginSettingsProvider {
 
 ## 进阶功能
 
-### 添加 UI 界面
+### 添加主窗口
 
-让插件实现 `PluginUIProvider`：
+让插件实现 `PluginUIProvider` 并设置 `hasMainWindow = true`：
 
 ```kotlin
+import androidx.compose.ui.unit.dp
+
 class MyPlugin : Plugin, PluginUIProvider {
     override val hasMainWindow = true
     
+    // 自定义窗口大小和标题
+    override val windowWidth = 800.dp
+    override val windowHeight = 600.dp
+    override val windowTitle = "My Plugin Window"
+    override val windowResizable = true
+    
     @Composable
     override fun MainWindow(onClose: () -> Unit) {
-        Column {
-            Text("My Plugin Window")
-            Button(onClick = onClose) { Text("Close") }
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp)
+        ) {
+            Text("My Plugin Window", style = MaterialTheme.typography.headlineMedium)
+            
+            Spacer(Modifier.height(16.dp))
+            
+            Button(onClick = onClose) { 
+                Text("Close") 
+            }
         }
     }
 }
@@ -200,13 +237,71 @@ class MyPlugin : Plugin, PluginUIProvider {
 
 ```kotlin
 class MyPlugin : Plugin, PluginSettingsProvider {
+    private var context: PluginContext? = null
+    
+    override fun onLoad(context: PluginContext) {
+        this.context = context
+    }
+    
     @Composable
     override fun SettingsContent() {
-        var enabled by remember { mutableStateOf(false) }
-        Row {
-            Text("Enable feature")
-            Switch(checked = enabled, onCheckedChange = { enabled = it })
+        var enabled by remember { 
+            mutableStateOf(context?.getBoolean("feature_enabled", false) ?: false) 
         }
+        
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Enable feature")
+                Switch(
+                    checked = enabled, 
+                    onCheckedChange = { 
+                        enabled = it
+                        context?.putBoolean("feature_enabled", it)
+                    }
+                )
+            }
+        }
+    }
+}
+```
+
+### 同时使用多个接口
+
+一个插件可以同时实现多个接口：
+
+```kotlin
+class MyPlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
+    private var context: PluginContext? = null
+    
+    override val manifest = PluginManifest(
+        id = "com.example.myplugin",
+        name = "My Plugin",
+        version = "1.0.0",
+        author = "Your Name",
+        description = "A plugin with UI and settings",
+        minApiVersion = "1.0.0",
+        mainClass = "com.example.myplugin.MyPlugin"
+    )
+    
+    // PluginUIProvider
+    override val hasMainWindow = true
+    override val windowWidth = 700.dp
+    override val windowHeight = 500.dp
+    override val windowTitle = "My Plugin"
+    
+    @Composable
+    override fun MainWindow(onClose: () -> Unit) {
+        // 主窗口内容
+    }
+    
+    // PluginSettingsProvider
+    @Composable
+    override fun SettingsContent() {
+        // 设置页面内容
     }
 }
 ```
@@ -242,6 +337,34 @@ class MyPlugin : Plugin, PluginSettingsProvider {
 - `mobile` - 仅移动端
 - `desktop` - 仅桌面端
 - `both` - 两端都需要安装（默认）
+
+## 插件存储
+
+插件可以使用 `PluginContext` 存储持久化数据：
+
+```kotlin
+override fun onLoad(context: PluginContext) {
+    // 读取设置
+    val userName = context.getString("user_name", "")
+    val counter = context.getInt("counter", 0)
+    
+    // 保存设置
+    context.putString("user_name", "John")
+    context.putInt("counter", counter + 1)
+}
+```
+
+数据存储在插件专属目录中，卸载插件时会被删除。
+
+## 插件更新
+
+当导入相同 ID 但版本号更高的插件时，系统会自动：
+1. 禁用旧版本插件
+2. 删除旧版本文件
+3. 安装新版本
+4. 如果旧版本是启用状态，新版本会自动启用
+
+版本号格式：`主版本.次版本.修订版本`（如 `1.2.3`）
 
 ## 文档
 
