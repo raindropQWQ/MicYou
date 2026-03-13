@@ -108,13 +108,47 @@ class PluginManager(private val pluginsDir: File) {
             }
 
             val manifest = json.decodeFromString<PluginManifest>(manifestFile.readText())
-            Logger.i("PluginManager", "Found plugin: ${manifest.id} - ${manifest.name}")
+            Logger.i("PluginManager", "Found plugin: ${manifest.id} - ${manifest.name} v${manifest.version}")
             val targetDir = File(pluginsDir, manifest.id.replace(".", "_"))
 
             if (targetDir.exists()) {
-                Logger.w("PluginManager", "Plugin ${manifest.id} already installed")
-                tempDir.deleteRecursively()
-                return Result.failure(Exception("Plugin ${manifest.id} already installed"))
+                // 检查已安装插件的版本
+                val existingManifestFile = File(targetDir, "plugin.json")
+                if (existingManifestFile.exists()) {
+                    try {
+                        val existingManifest = json.decodeFromString<PluginManifest>(existingManifestFile.readText())
+                        val comparison = compareVersions(manifest.version, existingManifest.version)
+                        
+                        if (comparison > 0) {
+                            // 新版本，执行更新
+                            Logger.i("PluginManager", "Updating plugin ${manifest.id} from v${existingManifest.version} to v${manifest.version}")
+                            
+                            // 先禁用旧版本
+                            disablePlugin(manifest.id)
+                            
+                            // 删除旧版本
+                            targetDir.deleteRecursively()
+                            Logger.d("PluginManager", "Removed old version of plugin ${manifest.id}")
+                        } else if (comparison == 0) {
+                            // 相同版本
+                            Logger.w("PluginManager", "Plugin ${manifest.id} v${manifest.version} already installed")
+                            tempDir.deleteRecursively()
+                            return Result.failure(Exception("Plugin ${manifest.id} v${manifest.version} already installed"))
+                        } else {
+                            // 旧版本
+                            Logger.w("PluginManager", "Plugin ${manifest.id} v${existingManifest.version} is newer than v${manifest.version}")
+                            tempDir.deleteRecursively()
+                            return Result.failure(Exception("A newer version (v${existingManifest.version}) of plugin ${manifest.id} is already installed"))
+                        }
+                    } catch (e: Exception) {
+                        Logger.e("PluginManager", "Failed to parse existing plugin manifest: ${e.message}")
+                        tempDir.deleteRecursively()
+                        return Result.failure(Exception("Failed to check existing plugin version"))
+                    }
+                } else {
+                    Logger.w("PluginManager", "Plugin directory exists but no manifest found, removing...")
+                    targetDir.deleteRecursively()
+                }
             }
 
             val jarFile = File(pluginRootDir, "plugin.jar")
@@ -277,5 +311,27 @@ class PluginManager(private val pluginsDir: File) {
         }
         
         return null
+    }
+
+    /**
+     * 比较两个版本号
+     * @return 正数表示 version1 > version2，0 表示相等，负数表示 version1 < version2
+     */
+    private fun compareVersions(version1: String, version2: String): Int {
+        val parts1 = version1.split(".")
+        val parts2 = version2.split(".")
+        
+        val maxLength = maxOf(parts1.size, parts2.size)
+        
+        for (i in 0 until maxLength) {
+            val v1 = parts1.getOrNull(i)?.toIntOrNull() ?: 0
+            val v2 = parts2.getOrNull(i)?.toIntOrNull() ?: 0
+            
+            if (v1 != v2) {
+                return v1 - v2
+            }
+        }
+        
+        return 0
     }
 }

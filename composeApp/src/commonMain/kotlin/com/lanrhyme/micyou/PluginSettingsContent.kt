@@ -248,7 +248,7 @@ private fun PluginItem(
                 Switch(
                     checked = pluginInfo.isEnabled,
                     onCheckedChange = { onToggleEnabled() },
-                    enabled = isCompatible
+                    enabled = isCompatible && pluginInfo.isLoaded || !pluginInfo.isEnabled
                 )
             }
             

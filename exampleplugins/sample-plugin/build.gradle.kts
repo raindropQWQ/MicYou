@@ -29,7 +29,7 @@ dependencies {
 }
 
 tasks.jar {
-    archiveBaseName.set("sample-plugin")
+    archiveFileName.set("plugin.jar")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
@@ -51,9 +51,9 @@ tasks.register<Zip>("packagePlugin") {
     // 添加 plugin.json
     from("src/main/resources/plugin.json")
 
-    // 添加编译后的类文件
+    // 添加编译后的类文件 (重命名为 plugin.jar)
     from(tasks.jar.get().outputs.files) {
-        into("classes")
+        rename { "plugin.jar" }
     }
 
     // 添加依赖库
