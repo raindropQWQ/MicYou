@@ -17,9 +17,9 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.Canvas
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
@@ -37,17 +37,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Error
+import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MicOff
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Usb
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
@@ -81,7 +85,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.lanrhyme.micyou.BackHandlerCompat
 import com.lanrhyme.micyou.animation.EasingFunctions
 import com.lanrhyme.micyou.animation.rememberBreathAnimation
 import com.lanrhyme.micyou.animation.rememberGlowAnimation
@@ -90,12 +93,9 @@ import com.lanrhyme.micyou.animation.rememberRotationAnimation
 import com.lanrhyme.micyou.animation.rememberWaveAnimation
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
-import androidx.compose.material.icons.rounded.Bluetooth
-import androidx.compose.material.icons.rounded.Extension
-import androidx.compose.material.icons.rounded.Podcasts
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Usb
-import androidx.compose.material.icons.rounded.Wifi
+import micyou.composeapp.generated.resources.Res
+import micyou.composeapp.generated.resources.icon_pip
+import org.jetbrains.compose.resources.painterResource
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
@@ -310,7 +310,7 @@ private fun MobileHeaderSection(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            Icons.Rounded.Podcasts,
+                            painterResource(Res.drawable.icon_pip),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
