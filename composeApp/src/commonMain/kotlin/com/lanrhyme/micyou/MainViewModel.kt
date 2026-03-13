@@ -106,6 +106,8 @@ data class AppUiState(
     // Floating Window Settings (Desktop only)
     val floatingWindowEnabled: Boolean = false,
     
+    // System Title Bar (Desktop only)
+    val useSystemTitleBar: Boolean = false,
     // First Launch Dialog
     val showFirstLaunchDialog: Boolean = false
 )
@@ -138,7 +140,6 @@ class MainViewModel : ViewModel() {
         val savedThemeModeName = settings.getString("theme_mode", ThemeMode.System.name)
         val savedThemeMode = try { ThemeMode.valueOf(savedThemeModeName) } catch(e: Exception) { ThemeMode.System }
         
-        val savedSeedColor = settings.getLong("seed_color", 0xFF4285F4)
         val savedMonitoring = false
         settings.putBoolean("monitoring_enabled", false)
 
@@ -178,6 +179,8 @@ class MainViewModel : ViewModel() {
         val savedLanguage = try { AppLanguage.valueOf(savedLanguageName) } catch(e: Exception) { AppLanguage.System }
 
         val savedUseDynamicColor = settings.getBoolean("use_dynamic_color", false)
+        val savedSeedColor = settings.getLong("seed_color", 0xFF4285F4)
+
         val savedBluetoothAddress = settings.getString("bluetooth_address", "")
         val savedIsAutoConfig = settings.getBoolean("is_auto_config", true)
         val savedMinimizeToTray = settings.getBoolean("minimize_to_tray", true)
@@ -203,10 +206,10 @@ class MainViewModel : ViewModel() {
         
         val savedFloatingWindowEnabled = settings.getBoolean("floating_window_enabled", false)
         val savedAutoCheckUpdate = settings.getBoolean("auto_check_update", true)
+        val savedUseSystemTitleBar = settings.getBoolean("use_system_title_bar", false)
         
         val hasLaunchedBefore = settings.getBoolean("has_launched_before", false)
-        val isDesktop = getPlatform().type == PlatformType.Desktop
-        val shouldShowFirstLaunchDialog = !hasLaunchedBefore && isDesktop
+        val shouldShowFirstLaunchDialog = !hasLaunchedBefore
         if (shouldShowFirstLaunchDialog) {
             settings.putBoolean("has_launched_before", true)
         }
@@ -253,6 +256,7 @@ class MainViewModel : ViewModel() {
                 ),
                 floatingWindowEnabled = savedFloatingWindowEnabled,
                 autoCheckUpdate = savedAutoCheckUpdate,
+                useSystemTitleBar = savedUseSystemTitleBar,
                 showFirstLaunchDialog = shouldShowFirstLaunchDialog
             ) 
         }
@@ -474,6 +478,11 @@ class MainViewModel : ViewModel() {
     fun setFloatingWindowEnabled(enabled: Boolean) {
         _uiState.update { it.copy(floatingWindowEnabled = enabled) }
         settings.putBoolean("floating_window_enabled", enabled)
+    }
+
+    fun setUseSystemTitleBar(enabled: Boolean) {
+        _uiState.update { it.copy(useSystemTitleBar = enabled) }
+        settings.putBoolean("use_system_title_bar", enabled)
     }
 
     fun handleCloseRequest(onExit: () -> Unit, onHide: () -> Unit) {

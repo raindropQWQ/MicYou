@@ -101,7 +101,10 @@ data class AppStrings(
     val developerLabel: String = "Developer",
     val githubRepoLabel: String = "GitHub Repository",
     val versionLabel: String = "Version",
-    val useDynamicColorLabel: String = "Use System Dynamic Color",
+    val useDynamicColorLabel: String = "Enable Dynamic Color",
+    val useDynamicColorDesc: String = "Use system accent color for app theme",
+    val dynamicColorActiveHint: String = "Currently using system dynamic color",
+    val dynamicColorEnabledHint: String = "Dynamic color is enabled",
     val androidAudioProcessingLabel: String = "Built-in Audio Processing",
     val androidAudioProcessingDesc: String = "Use hardware audio processing. May affect output quality.",
     val contributorsLabel: String = "Contributors",
@@ -208,7 +211,11 @@ data class AppStrings(
     
     // Floating Window
     val floatingWindowLabel: String = "Floating Window",
-    val floatingWindowDesc: String = "Show a small always-on-top window with audio visualization"
+    val floatingWindowDesc: String = "Show a small always-on-top window with audio visualization",
+    
+    // System Title Bar
+    val useSystemTitleBarLabel: String = "System Title Bar",
+    val useSystemTitleBarDesc: String = "Use native system window decorations instead of custom title bar"
 )
 
 val LocalAppStrings = staticCompositionLocalOf { AppStrings() }

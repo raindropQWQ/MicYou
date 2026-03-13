@@ -20,6 +20,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -56,9 +57,9 @@ import androidx.compose.material.icons.rounded.MicOff
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.HeadsetOff
 import androidx.compose.material.icons.rounded.Minimize
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -83,6 +84,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -100,14 +102,12 @@ import com.lanrhyme.micyou.animation.EasingFunctions
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import micyou.composeapp.generated.resources.Res
-import micyou.composeapp.generated.resources.icon_bluetooth
-import micyou.composeapp.generated.resources.icon_home_wifi
-import micyou.composeapp.generated.resources.icon_pip
-import micyou.composeapp.generated.resources.icon_planet
-import micyou.composeapp.generated.resources.icon_settings
-import micyou.composeapp.generated.resources.icon_usb
-import org.jetbrains.compose.resources.painterResource
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Podcasts
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Usb
+import androidx.compose.material.icons.rounded.Wifi
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
@@ -201,7 +201,6 @@ fun DesktopHomeEnhanced(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = RoundedCornerShape(22.dp),
         modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -322,7 +321,7 @@ private fun HeaderSection(
                     modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(painter = painterResource(Res.drawable.icon_pip), null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Rounded.Podcasts, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     }
                 }
                 Column {
@@ -394,7 +393,7 @@ private fun HeaderSection(
                                     )
                                 }
                                 Icon(
-                                    painterResource(Res.drawable.icon_planet),
+                                    Icons.Rounded.Language,
                                     null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(14.dp)
@@ -462,6 +461,7 @@ private fun HeaderSection(
                 }
             }
             
+            if (!state.useSystemTitleBar) {
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 IconButton(onClick = onMinimize, modifier = Modifier.size(30.dp)) {
                     Icon(Icons.Rounded.Minimize, null, modifier = Modifier.size(16.dp))
@@ -469,6 +469,7 @@ private fun HeaderSection(
                 IconButton(onClick = onClose, modifier = Modifier.size(30.dp)) {
                     Icon(Icons.Rounded.Close, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                 }
+            }
             }
         }
     }
@@ -567,9 +568,9 @@ private fun ModeCard(
             Text(strings.connectionModeLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             
             val modes = listOfNotNull(
-                ConnectionMode.Wifi to (strings.modeWifi to painterResource(Res.drawable.icon_home_wifi)),
-                if (!isBluetoothDisabled) ConnectionMode.Bluetooth to (strings.modeBluetooth to painterResource(Res.drawable.icon_bluetooth)) else null,
-                ConnectionMode.Usb to (strings.modeUsb to painterResource(Res.drawable.icon_usb))
+                ConnectionMode.Wifi to (strings.modeWifi to Icons.Rounded.Wifi),
+                if (!isBluetoothDisabled) ConnectionMode.Bluetooth to (strings.modeBluetooth to Icons.Rounded.Bluetooth) else null,
+                ConnectionMode.Usb to (strings.modeUsb to Icons.Rounded.Usb)
             )
             
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -586,10 +587,14 @@ private fun ModeCard(
                         animationSpec = tween(200)
                     )
                     
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = bgColor,
-                        modifier = Modifier.weight(1f).height(42.dp).clickable { onModeSelected(mode) }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(bgColor)
+                            .hoverable(interactionSource = remember { MutableInteractionSource() })
+                            .clickable { onModeSelected(mode) }
                     ) {
                         Column(
                             modifier = Modifier.fillMaxSize(),
@@ -1271,7 +1276,11 @@ private fun MainControlButton(
             elevation = FloatingActionButtonDefaults.elevation(defaultElevation = if (isPressed) 2.dp else 6.dp)
         ) {
             Icon(
-                if (isConnecting) Icons.Rounded.Refresh else if (isRunning) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                when {
+                    isConnecting -> Icons.Rounded.Refresh
+                    isRunning -> Icons.Filled.LinkOff
+                    else -> Icons.Filled.Link
+                },
                 null, modifier = Modifier.size(28.dp), tint = Color.White
             )
         }
@@ -1343,7 +1352,7 @@ private fun BottomBar(
             
             IconButton(onClick = onOpenSettings, modifier = Modifier.size(32.dp)) {
                 Icon(
-                    painter = painterResource(Res.drawable.icon_settings),
+                    Icons.Rounded.Settings,
                     contentDescription = strings.settingsTitle,
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
