@@ -10,7 +10,11 @@ import java.net.URLClassLoader
 import java.util.prefs.Preferences
 import java.util.zip.ZipFile
 
-class PluginManager(private val pluginsDir: File) {
+class PluginManager(
+    private val pluginsDir: File,
+    private val appLanguageProvider: () -> String = { "en" },
+    private val appStringProvider: ((String) -> String)? = null
+) {
     private val _plugins = MutableStateFlow<List<PluginInfo>>(emptyList())
     val plugins: StateFlow<List<PluginInfo>> = _plugins.asStateFlow()
 
@@ -226,7 +230,13 @@ class PluginManager(private val pluginsDir: File) {
 
             val pluginDataDir = File(pluginDir, "data")
             pluginDataDir.mkdirs()
-            val context = PluginStorage(pluginId, pluginDataDir)
+            val context = PluginStorage(
+                pluginId = pluginId,
+                dataDir = pluginDataDir,
+                pluginInstallDir = pluginDir,
+                appLanguageProvider = appLanguageProvider,
+                appStringProvider = appStringProvider
+            )
 
             plugin.onLoad(context)
             plugin.onEnable()

@@ -28,8 +28,18 @@ class JvmPluginManagerProvider(private val manager: JvmPluginManager) : PluginMa
     override fun getPluginUIProvider(pluginId: String): PluginUIProvider? = manager.getPluginUIProvider(pluginId)
 }
 
-actual fun createPluginManager(pluginsDirPath: String): PluginManagerProvider? {
-    return JvmPluginManagerProvider(JvmPluginManager(File(pluginsDirPath)))
+actual fun createPluginManager(
+    pluginsDirPath: String,
+    appLanguageProvider: () -> String,
+    appStringProvider: ((String) -> String)?
+): PluginManagerProvider? {
+    return JvmPluginManagerProvider(
+        JvmPluginManager(
+            pluginsDir = File(pluginsDirPath),
+            appLanguageProvider = appLanguageProvider,
+            appStringProvider = appStringProvider
+        )
+    )
 }
 
 actual fun getPluginsDirPath(): String {

@@ -16,6 +16,10 @@ interface PluginManagerProvider {
     fun getPluginUIProvider(pluginId: String): PluginUIProvider?
 }
 
-expect fun createPluginManager(pluginsDirPath: String): PluginManagerProvider?
+expect fun createPluginManager(
+    pluginsDirPath: String,
+    appLanguageProvider: () -> String = { "en" },
+    appStringProvider: ((String) -> String)? = null
+): PluginManagerProvider?
 
 expect fun getPluginsDirPath(): String

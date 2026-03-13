@@ -12,6 +12,8 @@
 - [PluginPermission](#pluginpermission)
 - [PluginUIProvider](#pluginuiprovider)
 - [PluginSettingsProvider](#pluginsettingsprovider)
+- [PluginLocalization](#pluginlocalization)
+- [PluginLocalizationProvider](#pluginlocalizationprovider)
 
 ---
 
@@ -178,6 +180,11 @@ interface PluginContext {
     val pluginId: String
     val pluginDataDir: String
     
+    // 本地化接口
+    val localization: PluginLocalization
+    val appLocalization: PluginLocalization
+    
+    // 数据存储
     fun getString(key: String, defaultValue: String): String
     fun putString(key: String, value: String)
     fun getBoolean(key: String, defaultValue: Boolean): Boolean
@@ -187,6 +194,7 @@ interface PluginContext {
     fun getFloat(key: String, defaultValue: Float): Float
     fun putFloat(key: String, value: Float)
     
+    // 日志
     fun log(message: String)
     fun logError(message: String, throwable: Throwable? = null)
 }
@@ -198,6 +206,8 @@ interface PluginContext {
 |------|------|------|
 | `pluginId` | `String` | 插件唯一标识符 |
 | `pluginDataDir` | `String` | 插件专属数据目录路径 |
+| `localization` | `PluginLocalization` | 插件本地化接口 |
+| `appLocalization` | `PluginLocalization` | 应用全局本地化接口 |
 
 ### 数据存储方法
 
@@ -378,6 +388,12 @@ interface PluginUIProvider {
     val hasMainWindow: Boolean get() = false
     val hasDialog: Boolean get() = false
     
+    // 窗口配置（仅桌面端）
+    val windowWidth: Dp get() = 600.dp
+    val windowHeight: Dp get() = 500.dp
+    val windowTitle: String get() = "Plugin Window"
+    val windowResizable: Boolean get() = true
+    
     @Composable
     fun MainWindow(onClose: () -> Unit) {}
     
@@ -392,6 +408,10 @@ interface PluginUIProvider {
 |------|------|--------|------|
 | `hasMainWindow` | `Boolean` | `false` | 是否提供主窗口 |
 | `hasDialog` | `Boolean` | `false` | 是否提供对话框 |
+| `windowWidth` | `Dp` | `600.dp` | 窗口宽度（仅桌面端） |
+| `windowHeight` | `Dp` | `500.dp` | 窗口高度（仅桌面端） |
+| `windowTitle` | `String` | `"Plugin Window"` | 窗口标题 |
+| `windowResizable` | `Boolean` | `true` | 窗口是否可调整大小 |
 
 ### 方法
 
@@ -505,6 +525,192 @@ class MyPlugin : Plugin, PluginSettingsProvider {
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
+```
+
+---
+
+## PluginLocalization
+
+插件本地化接口，提供多语言支持。
+
+```kotlin
+interface PluginLocalization {
+    val currentLanguage: String
+    fun getString(key: String, defaultValue: String = key): String
+    fun getString(key: String, vararg formatArgs: Any): String
+    fun setLanguage(languageCode: String)
+    fun getSupportedLanguages(): List<String>
+    fun reload()
+}
+```
+
+### 属性
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `currentLanguage` | `String` | 当前语言代码，如 "zh", "en" |
+
+### 方法
+
+#### getString
+
+```kotlin
+fun getString(key: String, defaultValue: String = key): String
+```
+
+获取本地化字符串。
+
+**参数：**
+- `key` - 字符串键名
+- `defaultValue` - 默认值，当找不到对应本地化字符串时返回
+
+**返回：** 本地化后的字符串
+
+**示例：**
+```kotlin
+val title = context.localization.getString("settings_title", "Settings")
+```
+
+#### getString (带格式化参数)
+
+```kotlin
+fun getString(key: String, vararg formatArgs: Any): String
+```
+
+获取带格式参数的本地化字符串。
+
+**参数：**
+- `key` - 字符串键名
+- `formatArgs` - 格式化参数
+
+**示例：**
+```kotlin
+// 本地化字符串: "Found %d items"
+val message = context.localization.getString("items_found", 5)
+// 结果: "Found 5 items"
+```
+
+#### setLanguage
+
+```kotlin
+fun setLanguage(languageCode: String)
+```
+
+切换语言。
+
+**参数：**
+- `languageCode` - 语言代码，如 "zh", "en"
+
+#### getSupportedLanguages
+
+```kotlin
+fun getSupportedLanguages(): List<String>
+```
+
+获取支持的语言列表。
+
+**返回：** 语言代码列表
+
+#### reload
+
+```kotlin
+fun reload()
+```
+
+重新加载本地化资源。当插件更新或语言切换时调用。
+
+---
+
+## PluginLocalizationProvider
+
+插件本地化提供者接口。插件可以实现此接口来提供自己的本地化资源。
+
+```kotlin
+interface PluginLocalizationProvider {
+    fun getLocalizedString(languageCode: String, key: String): String?
+    fun getSupportedLanguages(): List<String>
+}
+```
+
+### 方法
+
+#### getLocalizedString
+
+```kotlin
+fun getLocalizedString(languageCode: String, key: String): String?
+```
+
+获取插件的本地化字符串。
+
+**参数：**
+- `languageCode` - 语言代码
+- `key` - 字符串键名
+
+**返回：** 本地化字符串，如果没有找到返回 null
+
+**示例：**
+```kotlin
+class MyPlugin : Plugin, PluginLocalizationProvider {
+    private val zhStrings = mapOf(
+        "settings_title" to "设置",
+        "save_button" to "保存"
+    )
+    private val enStrings = mapOf(
+        "settings_title" to "Settings",
+        "save_button" to "Save"
+    )
+    
+    override fun getLocalizedString(languageCode: String, key: String): String? {
+        return when (languageCode) {
+            "zh", "zh-CN" -> zhStrings[key]
+            "en" -> enStrings[key]
+            else -> enStrings[key]
+        }
+    }
+    
+    override fun getSupportedLanguages(): List<String> {
+        return listOf("zh", "en")
+    }
+}
+```
+
+### 在 PluginContext 中访问
+
+`PluginContext` 提供两个本地化接口：
+
+```kotlin
+interface PluginContext {
+    /**
+     * 插件本地化接口
+     * 用于获取插件的本地化字符串
+     */
+    val localization: PluginLocalization
+    
+    /**
+     * 应用全局本地化接口
+     * 用于获取应用级别的本地化字符串
+     */
+    val appLocalization: PluginLocalization
+    
+    // ... 其他方法
+}
+```
+
+**使用示例：**
+```kotlin
+@Composable
+override fun SettingsContent() {
+    val strings = context?.localization
+    val appStrings = context?.appLocalization
+    
+    Column {
+        // 使用插件自己的本地化
+        Text(strings?.getString("settings_title", "Settings") ?: "Settings")
+        
+        // 使用应用的本地化
+        Text(appStrings?.getString("cancel", "Cancel") ?: "Cancel")
     }
 }
 ```

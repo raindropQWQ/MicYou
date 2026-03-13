@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.lanrhyme.micyou.plugin.*
 import androidx.compose.ui.unit.Dp
 
-class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
+class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLocalizationProvider {
 
     private var context: PluginContext? = null
     private var counter: Int = 0
@@ -21,7 +21,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
         name = "Sample Plugin",
         version = "1.0.0",
         author = "MicYou Team",
-        description = "A sample plugin demonstrating the MicYou Plugin API. Shows how to implement plugin lifecycle, UI components, and settings.",
+        description = "A sample plugin demonstrating the MicYou Plugin API. Shows how to implement plugin lifecycle, UI components, settings, and localization.",
         tags = listOf("utility", "demo"),
         platform = PluginPlatform.DESKTOP,
         minApiVersion = "1.0.0",
@@ -36,6 +36,15 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
     override val windowHeight: Dp get() = 600.dp
     override val windowTitle: String get() = "Sample Plugin - Demo Window"
     override val windowResizable: Boolean get() = true
+
+    // 插件本地化提供者 - 返回插件支持的本地化字符串
+    override fun getLocalizedString(languageCode: String, key: String): String? {
+        return PluginStrings.getString(languageCode, key)
+    }
+
+    override fun getSupportedLanguages(): List<String> {
+        return listOf("zh", "en")
+    }
 
     override fun onLoad(context: PluginContext) {
         this.context = context
@@ -66,6 +75,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
 
     @Composable
     override fun MainWindow(onClose: () -> Unit) {
+        val strings = context?.localization
         var localCounter by remember { mutableStateOf(counter) }
         var userName by remember { mutableStateOf(context?.getString("userName", "") ?: "") }
         var showAboutDialog by remember { mutableStateOf(false) }
@@ -111,7 +121,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "计数器",
+                            text = strings?.getString("counter_title", "Counter") ?: "Counter",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -132,7 +142,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                                 localCounter = getCounter()
                             }
                         ) {
-                            Text("增加计数")
+                            Text(strings?.getString("increment_button", "Increment") ?: "Increment")
                         }
                     }
                 }
@@ -148,14 +158,14 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "用户设置",
+                            text = strings?.getString("user_settings_title", "User Settings") ?: "User Settings",
                             style = MaterialTheme.typography.titleMedium
                         )
 
                         OutlinedTextField(
                             value = userName,
                             onValueChange = { userName = it },
-                            label = { Text("用户名") },
+                            label = { Text(strings?.getString("username_label", "Username") ?: "Username") },
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -166,7 +176,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                             },
                             modifier = Modifier.align(Alignment.End)
                         ) {
-                            Text("保存")
+                            Text(strings?.getString("save_button", "Save") ?: "Save")
                         }
                     }
                 }
@@ -182,14 +192,14 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "插件信息",
+                            text = strings?.getString("plugin_info_title", "Plugin Info") ?: "Plugin Info",
                             style = MaterialTheme.typography.titleMedium
                         )
 
-                        InfoRow("作者", manifest.author)
-                        InfoRow("描述", manifest.description)
-                        InfoRow("标签", manifest.tags.joinToString(", "))
-                        InfoRow("平台", manifest.platform.name)
+                        InfoRow(strings?.getString("author_label", "Author") ?: "Author", manifest.author)
+                        InfoRow(strings?.getString("description_label", "Description") ?: "Description", manifest.description)
+                        InfoRow(strings?.getString("tags_label", "Tags") ?: "Tags", manifest.tags.joinToString(", "))
+                        InfoRow(strings?.getString("platform_label", "Platform") ?: "Platform", manifest.platform.name)
                     }
                 }
 
@@ -201,11 +211,11 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                 ) {
                     TextButton(onClick = { showAboutDialog = true }) {
-                        Text("关于")
+                        Text(strings?.getString("about_button", "About") ?: "About")
                     }
 
                     Button(onClick = onClose) {
-                        Text("关闭")
+                        Text(strings?.getString("close_button", "Close") ?: "Close")
                     }
                 }
             }
@@ -215,22 +225,23 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
         if (showAboutDialog) {
             AlertDialog(
                 onDismissRequest = { showAboutDialog = false },
-                title = { Text("关于 ${manifest.name}") },
+                title = { Text(strings?.getString("about_title", "About")?.let { "$it ${manifest.name}" } ?: "About ${manifest.name}") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("版本: ${manifest.version}")
-                        Text("作者: ${manifest.author}")
-                        Text("描述: ${manifest.description}")
+                        Text("${strings?.getString("version_label", "Version")}: ${manifest.version}")
+                        Text("${strings?.getString("author_label", "Author")}: ${manifest.author}")
+                        Text("${strings?.getString("description_label", "Description")}: ${manifest.description}")
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "这是一个示例插件，展示了 MicYou 插件系统的功能。",
+                            strings?.getString("about_description", "This is a sample plugin demonstrating the MicYou plugin system.") 
+                                ?: "This is a sample plugin demonstrating the MicYou plugin system.",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = { showAboutDialog = false }) {
-                        Text("确定")
+                        Text(strings?.getString("ok_button", "OK") ?: "OK")
                     }
                 }
             )
@@ -239,6 +250,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
 
     @Composable
     override fun SettingsContent() {
+        val strings = context?.localization
         // 从存储中读取配置
         var enableNotifications by remember { 
             mutableStateOf(context?.getBoolean("enableNotifications", true) ?: true) 
@@ -271,7 +283,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        "通知设置",
+                        strings?.getString("notification_settings", "Notification Settings") ?: "Notification Settings",
                         style = MaterialTheme.typography.titleMedium
                     )
                     
@@ -280,7 +292,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("启用通知")
+                        Text(strings?.getString("enable_notifications", "Enable Notifications") ?: "Enable Notifications")
                         Switch(
                             checked = enableNotifications,
                             onCheckedChange = { 
@@ -291,7 +303,8 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                     }
                     
                     Text(
-                        "开启后，插件将定期发送通知提醒",
+                        strings?.getString("notification_desc", "When enabled, the plugin will send periodic notifications") 
+                            ?: "When enabled, the plugin will send periodic notifications",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -307,12 +320,12 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        "显示设置",
+                        strings?.getString("display_settings", "Display Settings") ?: "Display Settings",
                         style = MaterialTheme.typography.titleMedium
                     )
                     
                     // 最大项目数
-                    Text("最大显示项目数: $maxItems")
+                    Text(strings?.getString("max_items", "Max Items")?.let { "$it: $maxItems" } ?: "Max Items: $maxItems")
                     Slider(
                         value = maxItems.toFloat(),
                         onValueChange = { 
@@ -326,7 +339,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                     Divider()
                     
                     // 主题选择
-                    Text("主题模式")
+                    Text(strings?.getString("theme_mode", "Theme Mode") ?: "Theme Mode")
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -337,7 +350,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                                 theme = "light"
                                 context?.putString("theme", theme)
                             },
-                            label = { Text("浅色") }
+                            label = { Text(strings?.getString("theme_light", "Light") ?: "Light") }
                         )
                         FilterChip(
                             selected = theme == "dark",
@@ -345,7 +358,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                                 theme = "dark"
                                 context?.putString("theme", theme)
                             },
-                            label = { Text("深色") }
+                            label = { Text(strings?.getString("theme_dark", "Dark") ?: "Dark") }
                         )
                         FilterChip(
                             selected = theme == "system",
@@ -353,7 +366,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                                 theme = "system"
                                 context?.putString("theme", theme)
                             },
-                            label = { Text("跟随系统") }
+                            label = { Text(strings?.getString("theme_system", "System") ?: "System") }
                         )
                     }
                 }
@@ -368,14 +381,14 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        "网络设置",
+                        strings?.getString("network_settings", "Network Settings") ?: "Network Settings",
                         style = MaterialTheme.typography.titleMedium
                     )
                     
                     OutlinedTextField(
                         value = apiEndpoint,
                         onValueChange = { apiEndpoint = it },
-                        label = { Text("API 地址") },
+                        label = { Text(strings?.getString("api_endpoint", "API Endpoint") ?: "API Endpoint") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -384,12 +397,13 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                         onClick = { context?.putString("apiEndpoint", apiEndpoint) },
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text("保存地址")
+                        Text(strings?.getString("save_address", "Save Address") ?: "Save Address")
                     }
                     
                     Divider()
                     
-                    Text("刷新间隔: ${refreshInterval.toInt()} 秒")
+                    Text(strings?.getString("refresh_interval", "Refresh Interval")?.let { "$it: ${refreshInterval.toInt()}s" } 
+                        ?: "Refresh Interval: ${refreshInterval.toInt()}s")
                     Slider(
                         value = refreshInterval,
                         onValueChange = { 
@@ -411,11 +425,11 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "关于",
+                        strings?.getString("about_title", "About") ?: "About",
                         style = MaterialTheme.typography.titleMedium
                     )
-                    Text("版本: ${manifest.version}")
-                    Text("插件 ID: ${manifest.id}")
+                    Text("${strings?.getString("version_label", "Version")}: ${manifest.version}")
+                    Text("${strings?.getString("plugin_id", "Plugin ID")}: ${manifest.id}")
                     
                     TextButton(
                         onClick = {
@@ -434,7 +448,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
                         },
                         modifier = Modifier.align(Alignment.Start)
                     ) {
-                        Text("恢复默认设置")
+                        Text(strings?.getString("reset_defaults", "Reset to Defaults") ?: "Reset to Defaults")
                     }
                 }
             }

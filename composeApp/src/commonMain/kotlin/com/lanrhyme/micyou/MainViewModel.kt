@@ -131,9 +131,51 @@ class MainViewModel : ViewModel() {
     val audioLevels = audioEngine.audioLevels
     private val settings = SettingsFactory.getSettings()
     private val updateChecker = UpdateChecker()
-    private val pluginManager: PluginManagerProvider? = createPluginManager(getPluginsDirPath())
+    private var pluginManager: PluginManagerProvider? = null
 
     init {
+        // Load settings first to get the language
+        val initialLanguage = try { 
+            AppLanguage.valueOf(settings.getString("language", AppLanguage.System.name)) 
+        } catch(e: Exception) { 
+            AppLanguage.System 
+        }
+        
+        // Create plugin manager with language provider
+        pluginManager = createPluginManager(
+            pluginsDirPath = getPluginsDirPath(),
+            appLanguageProvider = { 
+                val lang = _uiState.value.language
+                when (lang) {
+                    AppLanguage.Chinese -> "zh"
+                    AppLanguage.ChineseTraditional -> "zh-TW"
+                    AppLanguage.Cantonese -> "zh-HK"
+                    AppLanguage.English -> "en"
+                    AppLanguage.ChineseCat -> "cat"
+                    AppLanguage.ChineseHard -> "zh_hard"
+                    AppLanguage.System -> {
+                        val locale = java.util.Locale.getDefault().toLanguageTag()
+                        when {
+                            locale.startsWith("zh-HK") -> "zh-HK"
+                            locale.startsWith("zh-TW") || locale.startsWith("zh-Hant") -> "zh-TW"
+                            locale.startsWith("zh") -> "zh"
+                            else -> "en"
+                        }
+                    }
+                }
+            },
+            appStringProvider = { key ->
+                val strings = getStrings(_uiState.value.language)
+                // Use reflection to get the string value from AppStrings
+                try {
+                    val field = AppStrings::class.java.getDeclaredField(key)
+                    field.get(strings) as? String ?: key
+                } catch (e: Exception) {
+                    key
+                }
+            }
+        )
+        
         pluginManager?.let { pm ->
             viewModelScope.launch {
                 pm.plugins.collect { pluginList ->
@@ -141,7 +183,7 @@ class MainViewModel : ViewModel() {
                 }
             }
         }
-        // Load settings
+        // Load other settings
         val savedModeName = settings.getString("connection_mode", ConnectionMode.Wifi.name)
         val savedMode = when (savedModeName) {
             "WifiUdp" -> ConnectionMode.Bluetooth
@@ -188,9 +230,6 @@ class MainViewModel : ViewModel() {
         val savedOledPureBlack = settings.getBoolean("oled_pure_black", false)
         
         val savedAutoStart = settings.getBoolean("auto_start", false)
-
-        val savedLanguageName = settings.getString("language", AppLanguage.System.name)
-        val savedLanguage = try { AppLanguage.valueOf(savedLanguageName) } catch(e: Exception) { AppLanguage.System }
 
         val savedUseDynamicColor = settings.getBoolean("use_dynamic_color", false)
         val savedSeedColor = settings.getLong("seed_color", 0xFF4285F4)
@@ -253,7 +292,7 @@ class MainViewModel : ViewModel() {
                 enableStreamingNotification = savedEnableStreamingNotification,
                 keepScreenOn = savedKeepScreenOn,
                 oledPureBlack = savedOledPureBlack,
-                language = savedLanguage,
+                language = initialLanguage,
                 useDynamicColor = savedUseDynamicColor,
                 bluetoothAddress = savedBluetoothAddress,
                 isAutoConfig = savedIsAutoConfig,

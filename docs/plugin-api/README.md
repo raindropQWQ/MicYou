@@ -306,6 +306,126 @@ class MyPlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
 }
 ```
 
+## 本地化
+
+插件支持多语言本地化。在资源目录创建 `i18n/` 文件夹：
+
+```
+src/main/resources/
+└── i18n/
+    ├── en.json
+    ├── zh-CN.json
+    └── ja.json
+```
+
+JSON 文件格式：
+
+```json
+{
+  "plugin.name": "My Plugin",
+  "plugin.description": "A sample plugin",
+  "settings.title": "Settings",
+  "button.save": "Save"
+}
+```
+
+在代码中使用本地化：
+
+```kotlin
+class MyPlugin : Plugin, PluginSettingsProvider {
+    private var context: PluginContext? = null
+    
+    override fun onLoad(context: PluginContext) {
+        this.context = context
+        // 加载本地化资源
+        context.loadLocale("zh-CN")
+    }
+    
+    @Composable
+    override fun SettingsContent() {
+        Column {
+            // 使用本地化字符串
+            Text(context?.getString("settings.title") ?: "Settings")
+            Button(onClick = { /* ... */ }) {
+                Text(context?.getString("button.save") ?: "Save")
+            }
+        }
+    }
+}
+```
+
+### 支持的本地化方法
+
+`PluginContext` 提供以下本地化方法：
+
+```kotlin
+interface PluginContext {
+    // 加载指定语言
+    fun loadLocale(languageTag: String)
+    
+    // 获取当前语言
+    val currentLocale: String
+    
+    // 获取本地化字符串
+    fun getString(key: String): String?
+    fun getString(key: String, defaultValue: String): String
+    
+    // 带参数的格式化字符串
+    fun formatString(key: String, vararg args: Any): String
+}
+```
+
+### 语言标签格式
+
+使用 IETF BCP 47 语言标签：
+- `en` - 英语
+- `zh-CN` - 简体中文
+- `zh-TW` - 繁体中文
+- `ja` - 日语
+- `ko` - 韩语
+- `de` - 德语
+- `fr` - 法语
+- `es` - 西班牙语
+
+### 回退机制
+
+如果当前语言的翻译不存在，系统会按以下顺序回退：
+1. 请求的具体语言（如 `zh-CN`）
+2. 基础语言（如 `zh`）
+3. 插件默认语言（`plugin.json` 中声明）
+4. 英语（`en`）
+5. 返回键名本身
+
+### 实现 PluginLocalizationProvider
+
+插件可以实现 `PluginLocalizationProvider` 接口来提供本地化字符串：
+
+```kotlin
+class MyPlugin : Plugin, PluginSettingsProvider, PluginLocalizationProvider {
+    private var context: PluginContext? = null
+    
+    // 插件本地化提供者
+    override fun getLocalizedString(languageCode: String, key: String): String? {
+        return when (languageCode) {
+            "zh", "zh-CN" -> zhStrings[key]
+            "en" -> enStrings[key]
+            else -> enStrings[key]
+        }
+    }
+    
+    override fun getSupportedLanguages(): List<String> {
+        return listOf("zh", "en")
+    }
+    
+    @Composable
+    override fun SettingsContent() {
+        // 使用本地化
+        val strings = context?.localization
+        Text(strings?.getString("settings_title", "Settings") ?: "Settings")
+    }
+}
+```
+
 ### 请求权限
 
 在 `plugin.json` 中声明权限：

@@ -5,12 +5,34 @@ import java.io.File
 import java.util.prefs.Preferences
 
 class PluginStorage(
-    override val pluginId: String, 
-    private val dataDir: File
+    override val pluginId: String,
+    private val dataDir: File,
+    private val pluginInstallDir: File,
+    private val appLanguageProvider: () -> String = { "en" },
+    private val appStringProvider: ((String) -> String)? = null
 ) : PluginContext {
     private val prefs = Preferences.userRoot().node("micyou/plugins/$pluginId")
 
     override val pluginDataDir: String get() = dataDir.absolutePath
+
+    /**
+     * 插件本地化接口
+     */
+    override val localization: PluginLocalization by lazy {
+        PluginLocalizationImpl(pluginId, pluginInstallDir, appLanguageProvider)
+    }
+
+    /**
+     * 应用全局本地化接口
+     */
+    override val appLocalization: PluginLocalization by lazy {
+        if (appStringProvider != null) {
+            AppPluginLocalization(appStringProvider, appLanguageProvider)
+        } else {
+            // 如果没有提供应用字符串提供者，使用插件本地化作为回退
+            localization
+        }
+    }
 
     override fun getString(key: String, defaultValue: String): String = prefs.get(key, defaultValue)
     override fun putString(key: String, value: String) = prefs.put(key, value)
