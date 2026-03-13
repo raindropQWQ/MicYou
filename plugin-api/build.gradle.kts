@@ -5,13 +5,15 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+val pluginApiVersion: String by project
+
 kotlin {
     jvm {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
         }
     }
-    
+
     sourceSets {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -21,3 +23,6 @@ kotlin {
         }
     }
 }
+
+group = "com.lanrhyme.micyou"
+version = pluginApiVersion
