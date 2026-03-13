@@ -1177,6 +1177,41 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )
                         }
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = cardOpacity * 0.5f))
+                        ) {
+                            ListItem(
+                                headlineContent = { Text(strings.audioSourceLabel) },
+                                trailingContent = {
+                                    var expanded by remember { mutableStateOf(false) }
+                                    val audioSourceOptions = getAudioSourceOptions()
+                                    val currentSource = audioSourceOptions.find { it.name == state.androidAudioSourceName } ?: audioSourceOptions.firstOrNull()
+                                    if (audioSourceOptions.isNotEmpty() && currentSource != null) {
+                                        Box {
+                                            TextButton(onClick = { expanded = true }) { Text(currentSource.label) }
+                                            DropdownMenu(
+                                                expanded = expanded,
+                                                onDismissRequest = { expanded = false },
+                                                shape = MaterialTheme.shapes.medium
+                                            ) {
+                                                audioSourceOptions.forEach { source ->
+                                                    DropdownMenuItem(
+                                                        text = { Text(source.label) },
+                                                        onClick = { viewModel.setAndroidAudioSource(source.name); expanded = false },
+                                                        trailingIcon = { if (currentSource == source) Icon(Icons.Default.Check, contentDescription = null) }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                            )
+                        }
                     }
                 } else {
                     // Desktop audio settings

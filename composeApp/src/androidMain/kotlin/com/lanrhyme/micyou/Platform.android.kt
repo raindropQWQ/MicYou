@@ -50,7 +50,10 @@ actual fun isDynamicColorSupported(): Boolean {
 }
 
 actual fun getDynamicSeedColor(): Long? {
-    // Android 使用系统动态配色方案，不需要单独获取种子色
     return null
+}
+
+actual fun getAudioSourceOptions(): List<AudioSourceOption> {
+    return AndroidAudioSource.entries.map { AudioSourceOption(it.name, it.label) }
 }
 

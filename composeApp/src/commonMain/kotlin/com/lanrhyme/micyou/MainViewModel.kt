@@ -69,7 +69,7 @@ data class AppUiState(
     val amplification: Float = 0.0f,
 
     // Android only: Audio source selection (stored as string to avoid enum dependency)
-    val androidAudioSourceName: String = "Mic",
+    val androidAudioSourceName: String = "Unprocessed",
 
     val audioConfigRevision: Int = 0,
 
@@ -223,7 +223,7 @@ class MainViewModel : ViewModel() {
 
         val savedAmplification = settings.getFloat("amplification", 0.0f)
 
-        val savedAndroidAudioSourceName = settings.getString("android_audio_source", "Mic")
+        val savedAndroidAudioSourceName = settings.getString("android_audio_source", "Unprocessed")
 
         val savedEnableStreamingNotification = settings.getBoolean("enable_streaming_notification", true)
         val savedKeepScreenOn = settings.getBoolean("keep_screen_on", false)

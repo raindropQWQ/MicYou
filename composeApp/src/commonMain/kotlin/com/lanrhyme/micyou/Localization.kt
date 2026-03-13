@@ -59,6 +59,7 @@ data class AppStrings(
     val sampleRateLabel: String = "Sample Rate",
     val channelCountLabel: String = "Channels",
     val audioFormatLabel: String = "Audio Format",
+    val audioSourceLabel: String = "Audio Source",
     val enableNsLabel: String = "Noise Suppression",
     val nsTypeLabel: String = "Algorithm",
     val nsAlgorithmHelpTitle: String = "Noise Reduction Algorithms",

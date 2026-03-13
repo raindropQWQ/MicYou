@@ -41,6 +41,7 @@
   "sampleRateLabel": "采样率",
   "channelCountLabel": "通道数",
   "audioFormatLabel": "音频格式",
+  "audioSourceLabel": "音频源",
   "enableNsLabel": "降噪 (Noise Suppression)",
   "nsTypeLabel": "降噪算法",
   "nsAlgorithmHelpTitle": "降噪算法说明",

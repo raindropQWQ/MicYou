@@ -74,3 +74,7 @@ expect fun isDynamicColorSupported(): Boolean
 // 获取动态种子色（用于启动时初始化）
 expect fun getDynamicSeedColor(): Long?
 
+data class AudioSourceOption(val name: String, val label: String)
+
+expect fun getAudioSourceOptions(): List<AudioSourceOption>
+

@@ -131,3 +131,5 @@ actual fun getDynamicColorScheme(isDark: Boolean): ColorScheme? {
     // 使用现有的颜色方案生成器
     return generateColorScheme(color, isDark)
 }
+
+actual fun getAudioSourceOptions(): List<AudioSourceOption> = emptyList()
