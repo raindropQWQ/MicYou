@@ -1,3 +1,3 @@
 package com.lanrhyme.micyou
 
-expect fun openPluginFileChooser(): String?
+expect fun openPluginFileChooser(onResult: (String?) -> Unit)

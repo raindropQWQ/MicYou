@@ -4,15 +4,17 @@ import javax.swing.JFileChooser
 import javax.swing.SwingUtilities
 import javax.swing.filechooser.FileNameExtensionFilter
 
-actual fun openPluginFileChooser(): String? {
-    if (!SwingUtilities.isEventDispatchThread()) {
+actual fun openPluginFileChooser(onResult: (String?) -> Unit) {
+    val filePath = if (!SwingUtilities.isEventDispatchThread()) {
         var result: String? = null
         SwingUtilities.invokeAndWait {
             result = openFileChooserInternal()
         }
-        return result
+        result
+    } else {
+        openFileChooserInternal()
     }
-    return openFileChooserInternal()
+    onResult(filePath)
 }
 
 private fun openFileChooserInternal(): String? {

@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
         Logger.i("MainActivity", "App started")
         
         BackgroundImagePicker.registerLauncher(this)
+        PluginFileChooserHelper.registerLauncher(this)
 
         val shouldQuickStart = intent?.action == ACTION_QUICK_START
 

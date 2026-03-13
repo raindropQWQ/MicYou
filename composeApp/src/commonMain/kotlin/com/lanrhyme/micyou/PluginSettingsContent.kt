@@ -79,13 +79,14 @@ fun PluginSettingsContent(
         ) {
             Button(
                 onClick = {
-                    val filePath = openPluginFileChooser()
-                    filePath?.let { path ->
-                        viewModel.importPlugin(path) { result ->
-                            result.onSuccess {
-                                viewModel.showSnackbar(strings.pluginImportSuccess)
-                            }.onFailure { error ->
-                                viewModel.showSnackbar(strings.pluginImportFailed.format(error.message ?: "Unknown error"))
+                    openPluginFileChooser { filePath ->
+                        filePath?.let { path ->
+                            viewModel.importPlugin(path) { result ->
+                                result.onSuccess {
+                                    viewModel.showSnackbar(strings.pluginImportSuccess)
+                                }.onFailure { error ->
+                                    viewModel.showSnackbar(strings.pluginImportFailed.format(error.message ?: "Unknown error"))
+                                }
                             }
                         }
                     }
