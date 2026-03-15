@@ -17,11 +17,11 @@ jobs:
       run: |
         VERSION=$(grep "^project.version=" gradle.properties | cut -d'=' -f2 | tr -d '\r')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-    - name: set up JDK 17
+    - name: set up JDK 21
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
-        distribution: 'temurin'
+        java-version: '21'
+        distribution: 'liberica'
         cache: gradle
 
     - name: Grant execute permission for gradlew
@@ -53,11 +53,11 @@ jobs:
         $line = (Select-String -Path gradle.properties -Pattern '^project\.version=').Line
         $version = $line.Split('=')[1].Trim()
         "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-    - name: set up JDK 17
+    - name: set up JDK 21
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
-        distribution: 'temurin'
+        java-version: '21'
+        distribution: 'liberica'
         cache: gradle
 
     - name: Install NSIS
@@ -122,11 +122,11 @@ jobs:
       run: |
         VERSION=$(grep "^project.version=" gradle.properties | cut -d'=' -f2 | tr -d '\r')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-    - name: set up JDK 17
+    - name: set up JDK 21
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
-        distribution: 'temurin'
+        java-version: '21'
+        distribution: 'liberica'
         cache: gradle
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
@@ -181,7 +181,7 @@ jobs:
       uses: actions/setup-java@v4
       with:
         java-version: '21'
-        distribution: 'temurin'
+        distribution: 'liberica'
         architecture: ${{ matrix.arch }}
         cache: gradle
     - name: Grant execute permission for gradlew
@@ -216,11 +216,11 @@ jobs:
         $line = (Select-String -Path gradle.properties -Pattern '^project\.version=').Line
         $version = $line.Split('=')[1].Trim()
         "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-    - name: set up JDK 17
+    - name: set up JDK 21
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
-        distribution: 'temurin'
+        java-version: '21'
+        distribution: 'liberica'
         cache: gradle
     - name: Build Windows No-JRE Package
       shell: pwsh
@@ -250,11 +250,11 @@ jobs:
       run: |
         VERSION=$(grep "^project.version=" gradle.properties | cut -d'=' -f2 | tr -d '\r')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-    - name: set up JDK 17
+    - name: set up JDK 21
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
-        distribution: 'temurin'
+        java-version: '21'
+        distribution: 'liberica'
         cache: gradle
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
@@ -296,11 +296,11 @@ jobs:
       run: |
         VERSION=$(grep "^project.version=" gradle.properties | cut -d'=' -f2 | tr -d '\r')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-    - name: set up JDK 17
+    - name: set up JDK 21
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
-        distribution: 'temurin'
+        java-version: '21'
+        distribution: 'liberica'
         architecture: ${{ matrix.arch }}
         cache: gradle
     - name: Grant execute permission for gradlew
