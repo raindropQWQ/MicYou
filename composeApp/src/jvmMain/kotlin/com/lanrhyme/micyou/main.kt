@@ -91,7 +91,7 @@ fun main() {
         // Helper function for app exit
         val exitApp: () -> Unit = {
             runBlocking {
-                VBCableManager.setSystemDefaultMicrophone(toCable = false)
+                VirtualAudioDeviceManager.setSystemDefaultMicrophone(toCable = false)
             }
             exitProcess(0)
         }

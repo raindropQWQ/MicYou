@@ -120,10 +120,10 @@ actual class AudioEngine actual constructor() {
         }
     }
 
-    actual val installProgress: Flow<String?> = VBCableManager.installProgress
+    actual val installProgress: Flow<String?> = VirtualAudioDeviceManager.installProgress
     
     actual suspend fun installDriver() {
-        VBCableManager.installVBCable()
+        VirtualAudioDeviceManager.installVirtualDevice()
     }
     
     actual fun updateConfig(
