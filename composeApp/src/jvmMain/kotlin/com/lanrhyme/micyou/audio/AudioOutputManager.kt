@@ -1,9 +1,9 @@
 package com.lanrhyme.micyou.audio
 
 import com.lanrhyme.micyou.Logger
-import com.lanrhyme.micyou.BlackHoleManager
+import com.lanrhyme.micyou.platform.BlackHoleManager
+import com.lanrhyme.micyou.platform.PipeWireManager
 import com.lanrhyme.micyou.platform.PlatformInfo
-import com.lanrhyme.micyou.platform.VirtualAudioDevice
 import javax.sound.sampled.*
 
 class AudioOutputManager {
@@ -54,20 +54,20 @@ class AudioOutputManager {
     private fun initLinux(audioFormat: AudioFormat, lineInfo: DataLine.Info): Boolean {
         Logger.d("AudioOutputManager", "Linux Platform: Try using PipeWire virtual devices")
         
-        if (!VirtualAudioDevice.isAvailable()) {
+        if (!PipeWireManager.isAvailable()) {
             Logger.w("AudioOutputManager", "PipeWire is unavailable; falling back to the default device.")
             return false
         }
         
-        if (!VirtualAudioDevice.isSetupComplete()) {
+        if (!PipeWireManager.isSetupComplete()) {
             Logger.i("AudioOutputManager", "Set up PipeWire virtual audio devices...")
-            if (!VirtualAudioDevice.setup()) {
+            if (!PipeWireManager.setup()) {
                 Logger.e("AudioOutputManager", "Failed to set up virtual audio device")
                 return false
             }
         }
         
-        val sinkName = VirtualAudioDevice.virtualSinkName
+        val sinkName = PipeWireManager.virtualSinkName
         Logger.i("AudioOutputManager", "Attempt to connect to the virtual sink: \$sinkName")
         
         val mixers = AudioSystem.getMixerInfo()
@@ -274,12 +274,12 @@ class AudioOutputManager {
     
     private fun startLinuxMonitorLoopback() {
         if (monitorLoopbackProcess?.isAlive == true) return
-        if (!VirtualAudioDevice.isSetupComplete()) {
+        if (!PipeWireManager.isSetupComplete()) {
             Logger.w("AudioOutputManager", "Monitor loopback not available: virtual device not setup")
             return
         }
         try {
-            val sinkName = VirtualAudioDevice.virtualSinkName
+            val sinkName = PipeWireManager.virtualSinkName
             val process = ProcessBuilder(
                 "pw-loopback",
                 "--capture-props={\"node.target\": \"$sinkName\", \"media.class\": \"Stream/Input/Audio\", \"stream.capture.sink\": true}",
@@ -360,9 +360,9 @@ class AudioOutputManager {
         outputLine = null
         isUsingVirtualDevice = false
         
-        if (PlatformInfo.isLinux && VirtualAudioDevice.isSetupComplete()) {
+        if (PlatformInfo.isLinux && PipeWireManager.isSetupComplete()) {
             Logger.i("AudioOutputManager", "Cleaning Up Linux Virtual Audio Devices")
-            VirtualAudioDevice.cleanup()
+            PipeWireManager.cleanup()
         }
     }
     

@@ -61,7 +61,7 @@ class JVMPlatform: Platform {
 actual fun getPlatform(): Platform = JVMPlatform()
 
 actual fun uninstallVBCable() {
-    VBCableManager.uninstallVBCable()
+    VirtualAudioDeviceManager.uninstallVBCable()
 }
 
 actual fun getAppVersion(): String {
