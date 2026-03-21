@@ -10,6 +10,7 @@ class AndroidPluginStorage(
     override val pluginId: String,
     private val dataDir: File,
     private val pluginInstallDir: File,
+    override val host: PluginHost,
     private val appLanguageProvider: () -> String = { "en" },
     private val appStringProvider: ((String) -> String)? = null
 ) : PluginContext {

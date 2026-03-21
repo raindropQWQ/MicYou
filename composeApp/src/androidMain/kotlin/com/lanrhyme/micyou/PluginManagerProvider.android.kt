@@ -2,6 +2,7 @@ package com.lanrhyme.micyou
 
 import com.lanrhyme.micyou.plugin.AndroidPluginManager
 import com.lanrhyme.micyou.plugin.Plugin
+import com.lanrhyme.micyou.plugin.PluginHost
 import com.lanrhyme.micyou.plugin.PluginInfo
 import com.lanrhyme.micyou.plugin.PluginSettingsProvider
 import com.lanrhyme.micyou.plugin.PluginUIProvider
@@ -30,12 +31,14 @@ class AndroidPluginManagerProvider(private val manager: AndroidPluginManager) : 
 
 actual fun createPluginManager(
     pluginsDirPath: String,
+    pluginHost: PluginHost,
     appLanguageProvider: () -> String,
     appStringProvider: ((String) -> String)?
 ): PluginManagerProvider? {
     return AndroidPluginManagerProvider(
         AndroidPluginManager(
             pluginsDir = File(pluginsDirPath),
+            pluginHost = pluginHost,
             appLanguageProvider = appLanguageProvider,
             appStringProvider = appStringProvider
         )

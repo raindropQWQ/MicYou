@@ -12,6 +12,7 @@ import java.util.zip.ZipFile
 
 class PluginManager(
     private val pluginsDir: File,
+    private val pluginHost: PluginHost,
     private val appLanguageProvider: () -> String = { "en" },
     private val appStringProvider: ((String) -> String)? = null
 ) {
@@ -129,7 +130,6 @@ class PluginManager(
             val targetDir = File(pluginsDir, manifest.id.replace(".", "_"))
 
             if (targetDir.exists()) {
-                // 检查已安装插件的版本
                 val existingManifestFile = File(targetDir, "plugin.json")
                 if (existingManifestFile.exists()) {
                     try {
@@ -137,22 +137,15 @@ class PluginManager(
                         val comparison = compareVersions(manifest.version, existingManifest.version)
                         
                         if (comparison > 0) {
-                            // 新版本，执行更新
                             Logger.i("PluginManager", "Updating plugin ${manifest.id} from v${existingManifest.version} to v${manifest.version}")
-                            
-                            // 先禁用旧版本
                             disablePlugin(manifest.id)
-                            
-                            // 删除旧版本
                             targetDir.deleteRecursively()
                             Logger.d("PluginManager", "Removed old version of plugin ${manifest.id}")
                         } else if (comparison == 0) {
-                            // 相同版本
                             Logger.w("PluginManager", "Plugin ${manifest.id} v${manifest.version} already installed")
                             tempDir.deleteRecursively()
                             return Result.failure(Exception("Plugin ${manifest.id} v${manifest.version} already installed"))
                         } else {
-                            // 旧版本
                             Logger.w("PluginManager", "Plugin ${manifest.id} v${existingManifest.version} is newer than v${manifest.version}")
                             tempDir.deleteRecursively()
                             return Result.failure(Exception("A newer version (v${existingManifest.version}) of plugin ${manifest.id} is already installed"))
@@ -234,6 +227,7 @@ class PluginManager(
                 pluginId = pluginId,
                 dataDir = pluginDataDir,
                 pluginInstallDir = pluginDir,
+                host = pluginHost,
                 appLanguageProvider = appLanguageProvider,
                 appStringProvider = appStringProvider
             )
@@ -336,10 +330,6 @@ class PluginManager(
         return null
     }
 
-    /**
-     * 比较两个版本号
-     * @return 正数表示 version1 > version2，0 表示相等，负数表示 version1 < version2
-     */
     private fun compareVersions(version1: String, version2: String): Int {
         val parts1 = version1.split(".")
         val parts2 = version2.split(".")

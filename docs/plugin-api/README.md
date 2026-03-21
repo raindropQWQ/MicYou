@@ -5,10 +5,12 @@ MicYou 插件开发快速开始指南。
 ## 概述
 
 MicYou 插件系统允许开发者扩展应用功能。插件可以：
-- 提供自定义 UI 界面（主窗口或对话框）
+- 提供自定义 UI 界面（主窗口、对话框或新页面）
 - 提供设置页面
 - 访问插件专属存储空间
-- 请求特定权限（网络、存储等）
+- 访问主机应用状态和控制能力
+- 注册自定义音频效果器（降噪、增益等）
+- 修改应用设置和音频配置
 
 ## 快速开始
 
@@ -67,6 +69,10 @@ class MyPlugin : Plugin {
     
     override fun onLoad(context: PluginContext) {
         context.log("Plugin loaded!")
+        
+        // 访问主机能力
+        val host = context.host
+        context.log("Platform: ${host.platform.name}")
     }
     
     override fun onEnable() {
@@ -146,6 +152,10 @@ interface PluginContext {
     val pluginId: String
     val pluginDataDir: String
     
+    // 本地化接口
+    val localization: PluginLocalization
+    val appLocalization: PluginLocalization
+    
     // 数据存储
     fun getString(key: String, defaultValue: String): String
     fun putString(key: String, value: String)
@@ -159,6 +169,50 @@ interface PluginContext {
     // 日志
     fun log(message: String)
     fun logError(message: String, throwable: Throwable? = null)
+    
+    // 主机能力
+    val host: PluginHost
+}
+```
+
+### PluginHost
+
+提供对主机应用的访问能力：
+
+```kotlin
+interface PluginHost {
+    // 状态流
+    val streamState: StateFlow<StreamState>
+    val audioLevels: StateFlow<Float>
+    val isMuted: StateFlow<Boolean>
+    val connectionInfo: StateFlow<ConnectionInfo?>
+    val audioConfig: StateFlow<AudioConfig>
+    
+    // 音频配置
+    fun updateAudioConfig(config: AudioConfig)
+    fun updateAudioConfig(block: AudioConfig.() -> AudioConfig)
+    
+    // 流控制
+    suspend fun startStream(ip: String, port: Int, mode: ConnectionMode, isClient: Boolean)
+    suspend fun stopStream()
+    suspend fun setMute(muted: Boolean)
+    fun setMonitoring(enabled: Boolean)
+    
+    // 音频效果注册
+    fun registerAudioEffect(effect: AudioEffectProvider, priority: Int = 100)
+    fun unregisterAudioEffect(effect: AudioEffectProvider)
+    
+    // UI 反馈
+    fun showSnackbar(message: String)
+    fun showNotification(title: String, message: String)
+    
+    // 设置访问
+    fun getSetting(key: String, defaultValue: String): String
+    fun setSetting(key: String, value: String)
+    // ... 其他设置方法
+    
+    // 平台信息
+    val platform: PlatformInfo
 }
 ```
 
@@ -171,17 +225,25 @@ interface PluginUIProvider {
     val hasMainWindow: Boolean get() = false
     val hasDialog: Boolean get() = false
     
-    // 窗口配置（仅桌面端）
+    // 窗口配置（桌面端）
     val windowWidth: Dp get() = 600.dp
     val windowHeight: Dp get() = 500.dp
     val windowTitle: String get() = "Plugin Window"
     val windowResizable: Boolean get() = true
+    
+    // 移动端 UI 模式
+    val mobileUIMode: MobileUIMode get() = MobileUIMode.Dialog
     
     @Composable
     fun MainWindow(onClose: () -> Unit) {}
     
     @Composable
     fun DialogContent(onDismiss: () -> Unit) {}
+}
+
+enum class MobileUIMode {
+    Dialog,     // 对话框模式
+    NewScreen   // 新页面模式
 }
 ```
 
@@ -198,110 +260,103 @@ interface PluginSettingsProvider {
 
 ## 进阶功能
 
-### 添加主窗口
-
-让插件实现 `PluginUIProvider` 并设置 `hasMainWindow = true`：
+### 访问主机状态
 
 ```kotlin
-import androidx.compose.ui.unit.dp
-
-class MyPlugin : Plugin, PluginUIProvider {
-    override val hasMainWindow = true
-    
-    // 自定义窗口大小和标题
-    override val windowWidth = 800.dp
-    override val windowHeight = 600.dp
-    override val windowTitle = "My Plugin Window"
-    override val windowResizable = true
-    
-    @Composable
-    override fun MainWindow(onClose: () -> Unit) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp)
-        ) {
-            Text("My Plugin Window", style = MaterialTheme.typography.headlineMedium)
-            
-            Spacer(Modifier.height(16.dp))
-            
-            Button(onClick = onClose) { 
-                Text("Close") 
-            }
-        }
-    }
-}
-```
-
-### 添加设置页面
-
-让插件实现 `PluginSettingsProvider`：
-
-```kotlin
-class MyPlugin : Plugin, PluginSettingsProvider {
+class MyPlugin : Plugin {
     private var context: PluginContext? = null
     
     override fun onLoad(context: PluginContext) {
         this.context = context
-    }
-    
-    @Composable
-    override fun SettingsContent() {
-        var enabled by remember { 
-            mutableStateOf(context?.getBoolean("feature_enabled", false) ?: false) 
-        }
         
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Enable feature")
-                Switch(
-                    checked = enabled, 
-                    onCheckedChange = { 
-                        enabled = it
-                        context?.putBoolean("feature_enabled", it)
-                    }
-                )
-            }
+        // 获取当前流状态
+        val state = context.host.streamState.value
+        context.log("Current stream state: $state")
+        
+        // 获取音频配置
+        val config = context.host.audioConfig.value
+        context.log("NS enabled: ${config.enableNS}")
+    }
+}
+```
+
+### 修改音频配置
+
+```kotlin
+class MyPlugin : Plugin {
+    fun enableCustomNoiseReduction() {
+        context?.host?.updateAudioConfig { config ->
+            config.copy(
+                enableNS = true,
+                nsType = NoiseReductionType.RNNoise
+            )
         }
     }
 }
 ```
 
-### 同时使用多个接口
-
-一个插件可以同时实现多个接口：
+### 注册自定义音频效果
 
 ```kotlin
-class MyPlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
-    private var context: PluginContext? = null
+class MyNoiseReducer : AudioEffectProvider {
+    override val id = "com.example.myplugin.noise-reducer"
+    override val name = "My Noise Reducer"
+    override val description = "Custom noise reduction effect"
+    override var isEnabled = true
     
-    override val manifest = PluginManifest(
-        id = "com.example.myplugin",
-        name = "My Plugin",
-        version = "1.0.0",
-        author = "Your Name",
-        description = "A plugin with UI and settings",
-        minApiVersion = "1.0.0",
-        mainClass = "com.example.myplugin.MyPlugin"
-    )
-    
-    // PluginUIProvider
-    override val hasMainWindow = true
-    override val windowWidth = 700.dp
-    override val windowHeight = 500.dp
-    override val windowTitle = "My Plugin"
-    
-    @Composable
-    override fun MainWindow(onClose: () -> Unit) {
-        // 主窗口内容
+    override fun process(input: ShortArray, channelCount: Int, sampleRate: Int): ShortArray {
+        // 实现降噪算法
+        return input
     }
     
-    // PluginSettingsProvider
-    @Composable
-    override fun SettingsContent() {
-        // 设置页面内容
+    override fun reset() {
+        // 重置内部状态
+    }
+    
+    override fun release() {
+        // 释放资源
+    }
+}
+
+class MyPlugin : Plugin, AudioEffectPlugin {
+    override val audioEffectProvider = MyNoiseReducer()
+    override val effectPriority = 50  // 较高优先级
+    
+    override fun onLoad(context: PluginContext) {
+        // 注册音频效果
+        context.host.registerAudioEffect(audioEffectProvider, effectPriority)
+    }
+    
+    override fun onUnload() {
+        context?.host?.unregisterAudioEffect(audioEffectProvider)
+    }
+}
+```
+
+### 显示通知
+
+```kotlin
+class MyPlugin : Plugin {
+    fun notifyUser() {
+        context?.host?.showSnackbar("Operation completed!")
+        context?.host?.showNotification("My Plugin", "Background task finished")
+    }
+}
+```
+
+### 读取/修改应用设置
+
+```kotlin
+class MyPlugin : Plugin {
+    fun readAppSettings() {
+        val host = context?.host ?: return
+        
+        // 读取应用设置
+        val theme = host.getSetting("theme", "system")
+        val autoStart = host.getSettingBoolean("autoStart", false)
+        
+        // 修改应用设置
+        host.setSettingBoolean("autoStart", true)
     }
 }
 ```
@@ -332,167 +387,62 @@ JSON 文件格式：
 在代码中使用本地化：
 
 ```kotlin
-class MyPlugin : Plugin, PluginSettingsProvider {
-    private var context: PluginContext? = null
-    
-    override fun onLoad(context: PluginContext) {
-        this.context = context
-        // 加载本地化资源
-        context.loadLocale("zh-CN")
-    }
-    
-    @Composable
-    override fun SettingsContent() {
-        Column {
-            // 使用本地化字符串
-            Text(context?.getString("settings.title") ?: "Settings")
-            Button(onClick = { /* ... */ }) {
-                Text(context?.getString("button.save") ?: "Save")
-            }
-        }
-    }
-}
-```
-
-### 支持的本地化方法
-
-`PluginContext` 提供以下本地化方法：
-
-```kotlin
-interface PluginContext {
-    // 加载指定语言
-    fun loadLocale(languageTag: String)
-    
-    // 获取当前语言
-    val currentLocale: String
-    
-    // 获取本地化字符串
-    fun getString(key: String): String?
-    fun getString(key: String, defaultValue: String): String
-    
-    // 带参数的格式化字符串
-    fun formatString(key: String, vararg args: Any): String
-}
-```
-
-### 语言标签格式
-
-使用 IETF BCP 47 语言标签：
-- `en` - 英语
-- `zh-CN` - 简体中文
-- `zh-TW` - 繁体中文
-- `ja` - 日语
-- `ko` - 韩语
-- `de` - 德语
-- `fr` - 法语
-- `es` - 西班牙语
-
-### 回退机制
-
-如果当前语言的翻译不存在，系统会按以下顺序回退：
-1. 请求的具体语言（如 `zh-CN`）
-2. 基础语言（如 `zh`）
-3. 插件默认语言（`plugin.json` 中声明）
-4. 英语（`en`）
-5. 返回键名本身
-
-### 实现 PluginLocalizationProvider
-
-插件可以实现 `PluginLocalizationProvider` 接口来提供本地化字符串：
-
-```kotlin
-class MyPlugin : Plugin, PluginSettingsProvider, PluginLocalizationProvider {
-    private var context: PluginContext? = null
-    
-    // 插件本地化提供者
+class MyPlugin : Plugin, PluginLocalizationProvider {
     override fun getLocalizedString(languageCode: String, key: String): String? {
         return when (languageCode) {
-            "zh", "zh-CN" -> zhStrings[key]
+            "zh" -> zhStrings[key]
             "en" -> enStrings[key]
-            else -> enStrings[key]
+            else -> null
         }
     }
     
     override fun getSupportedLanguages(): List<String> {
         return listOf("zh", "en")
     }
+}
+```
+
+## 完整示例
+
+```kotlin
+class MyPlugin : Plugin, PluginUIProvider, PluginSettingsProvider {
+    private var context: PluginContext? = null
+    
+    override val manifest = PluginManifest(
+        id = "com.example.myplugin",
+        name = "My Plugin",
+        version = "1.0.0",
+        author = "Your Name",
+        description = "A plugin with UI and settings",
+        minApiVersion = "1.0.0",
+        mainClass = "com.example.myplugin.MyPlugin"
+    )
+    
+    // PluginUIProvider
+    override val hasMainWindow = true
+    override val windowWidth = 700.dp
+    override val windowHeight = 500.dp
+    override val windowTitle = "My Plugin"
+    override val mobileUIMode = MobileUIMode.NewScreen
     
     @Composable
+    override fun MainWindow(onClose: () -> Unit) {
+        val host = context?.host
+        val streamState by host?.streamState?.collectAsState() 
+            ?: remember { mutableStateOf(StreamState.Idle) }
+        
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Stream State: $streamState")
+            Button(onClick = { host?.showSnackbar("Hello!") }) {
+                Text("Show Message")
+            }
+        }
+    }
+    
+    // PluginSettingsProvider
+    @Composable
     override fun SettingsContent() {
-        // 使用本地化
-        val strings = context?.localization
-        Text(strings?.getString("settings_title", "Settings") ?: "Settings")
+        // 设置页面内容
     }
 }
 ```
-
-### 请求权限
-
-在 `plugin.json` 中声明权限：
-
-```json
-{
-  "permissions": ["network", "storage"]
-}
-```
-
-可用权限：
-- `storage` - 文件存储访问
-- `network` - 网络访问
-- `camera` - 摄像头访问
-- `microphone` - 麦克风访问
-- `bluetooth` - 蓝牙访问
-
-### 平台兼容性
-
-指定插件支持的平台：
-
-```json
-{
-  "platform": "desktop"
-}
-```
-
-可用值：
-- `mobile` - 仅移动端
-- `desktop` - 仅桌面端
-- `both` - 两端都需要安装（默认）
-
-## 插件存储
-
-插件可以使用 `PluginContext` 存储持久化数据：
-
-```kotlin
-override fun onLoad(context: PluginContext) {
-    // 读取设置
-    val userName = context.getString("user_name", "")
-    val counter = context.getInt("counter", 0)
-    
-    // 保存设置
-    context.putString("user_name", "John")
-    context.putInt("counter", counter + 1)
-}
-```
-
-数据存储在插件专属目录中，卸载插件时会被删除。
-
-## 插件更新
-
-当导入相同 ID 但版本号更高的插件时，系统会自动：
-1. 禁用旧版本插件
-2. 删除旧版本文件
-3. 安装新版本
-4. 如果旧版本是启用状态，新版本会自动启用
-
-版本号格式：`主版本.次版本.修订版本`（如 `1.2.3`）
-
-## 文档
-
-- [API 参考](api-reference.md)
-- [插件包格式](plugin-format.md)
-- [权限系统](permissions.md)
-- [最佳实践](best-practices.md)
-
-## 示例项目
-
-查看 `examples/sample-plugin/` 获取完整的示例插件项目。

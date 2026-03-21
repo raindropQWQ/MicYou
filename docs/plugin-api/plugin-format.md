@@ -72,14 +72,6 @@ my-plugin.micyou-plugin.zip
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
       "description": "最低 API 版本要求"
     },
-    "permissions": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["storage", "network", "camera", "microphone", "bluetooth"]
-      },
-      "description": "所需权限列表"
-    },
     "mainClass": {
       "type": "string",
       "description": "插件主类全限定名，必须实现 Plugin 接口"
@@ -100,23 +92,21 @@ my-plugin.micyou-plugin.zip
 | tags | 否 | string[] | 标签数组，用于分类筛选 |
 | platform | 否 | string | 支持平台：mobile/desktop/both，默认 both |
 | minApiVersion | 是 | string | 最低 API 版本 |
-| permissions | 否 | string[] | 权限列表 |
 | mainClass | 是 | string | 主类全限定名 |
 
 ## 完整示例
 
 ```json
 {
-  "id": "com.example.camera-stream",
-  "name": "Camera Stream",
+  "id": "com.example.audio-enhancer",
+  "name": "Audio Enhancer",
   "version": "1.0.0",
   "author": "Developer Name",
-  "description": "A plugin that provides camera streaming functionality for MicYou.",
-  "tags": ["camera", "streaming", "video"],
+  "description": "A plugin that provides advanced audio enhancement features including custom noise reduction and equalization.",
+  "tags": ["audio", "effect"],
   "platform": "both",
   "minApiVersion": "1.0.0",
-  "permissions": ["camera", "network"],
-  "mainClass": "com.example.camerastream.CameraStreamPlugin"
+  "mainClass": "com.example.audioenhancer.AudioEnhancerPlugin"
 }
 ```
 
@@ -133,3 +123,11 @@ my-plugin.micyou-plugin.zip
 - 建议尺寸：128x128 像素
 - 支持透明背景
 - 文件名必须为 `icon.png`
+
+## 平台说明
+
+| 值 | 说明 |
+|------|------|
+| `mobile` | 仅 Android 端支持 |
+| `desktop` | 仅 JVM Desktop 端支持 |
+| `both` | 两端都需要安装，用于跨平台功能 |

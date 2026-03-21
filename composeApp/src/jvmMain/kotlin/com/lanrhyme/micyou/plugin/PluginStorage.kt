@@ -8,6 +8,7 @@ class PluginStorage(
     override val pluginId: String,
     private val dataDir: File,
     private val pluginInstallDir: File,
+    override val host: PluginHost,
     private val appLanguageProvider: () -> String = { "en" },
     private val appStringProvider: ((String) -> String)? = null
 ) : PluginContext {
@@ -15,21 +16,14 @@ class PluginStorage(
 
     override val pluginDataDir: String get() = dataDir.absolutePath
 
-    /**
-     * 插件本地化接口
-     */
     override val localization: PluginLocalization by lazy {
         PluginLocalizationImpl(pluginId, pluginInstallDir, appLanguageProvider)
     }
 
-    /**
-     * 应用全局本地化接口
-     */
     override val appLocalization: PluginLocalization by lazy {
         if (appStringProvider != null) {
             AppPluginLocalization(appStringProvider, appLanguageProvider)
         } else {
-            // 如果没有提供应用字符串提供者，使用插件本地化作为回退
             localization
         }
     }

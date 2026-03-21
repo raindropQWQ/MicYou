@@ -2,6 +2,7 @@ package com.lanrhyme.micyou
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lanrhyme.micyou.plugin.PluginHost
 import com.lanrhyme.micyou.plugin.PluginInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -132,6 +133,7 @@ class MainViewModel : ViewModel() {
     private val settings = SettingsFactory.getSettings()
     private val updateChecker = UpdateChecker()
     private var pluginManager: PluginManagerProvider? = null
+    private lateinit var pluginHost: PluginHost
 
     init {
         // Load settings first to get the language
@@ -141,9 +143,21 @@ class MainViewModel : ViewModel() {
             AppLanguage.System 
         }
         
+        // Create plugin host
+        pluginHost = createPluginHost(
+            audioEngine = audioEngine,
+            showSnackbarCallback = { message ->
+                _uiState.update { it.copy(snackbarMessage = message) }
+            },
+            showNotificationCallback = { title, message ->
+                Logger.i("PluginHost", "Notification: $title - $message")
+            }
+        )
+        
         // Create plugin manager with language provider
         pluginManager = createPluginManager(
             pluginsDirPath = getPluginsDirPath(),
+            pluginHost = pluginHost,
             appLanguageProvider = { 
                 val lang = _uiState.value.language
                 when (lang) {

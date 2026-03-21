@@ -1,5 +1,6 @@
 package com.lanrhyme.micyou
 
+import com.lanrhyme.micyou.plugin.PluginHost
 import com.lanrhyme.micyou.plugin.PluginInfo
 import com.lanrhyme.micyou.plugin.PluginUIProvider
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +19,7 @@ interface PluginManagerProvider {
 
 expect fun createPluginManager(
     pluginsDirPath: String,
+    pluginHost: PluginHost,
     appLanguageProvider: () -> String = { "en" },
     appStringProvider: ((String) -> String)? = null
 ): PluginManagerProvider?

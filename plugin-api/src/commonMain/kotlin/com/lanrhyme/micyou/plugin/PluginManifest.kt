@@ -14,7 +14,6 @@ data class PluginManifest(
     val platform: PluginPlatform = PluginPlatform.BOTH,
     @SerialName("minApiVersion")
     val minApiVersion: String,
-    val permissions: List<String> = emptyList(),
     @SerialName("mainClass")
     val mainClass: String
 )

@@ -7,6 +7,5 @@
   "tags": ["utility", "demo"],
   "platform": "desktop",
   "minApiVersion": "1.0.0",
-  "permissions": ["storage"],
   "mainClass": "com.example.sampleplugin.SamplePlugin"
 }

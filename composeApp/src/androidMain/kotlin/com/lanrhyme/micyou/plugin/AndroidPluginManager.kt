@@ -14,6 +14,7 @@ import java.util.zip.ZipFile
 
 class AndroidPluginManager(
     private val pluginsDir: File,
+    private val pluginHost: PluginHost,
     private val appLanguageProvider: () -> String = { "en" },
     private val appStringProvider: ((String) -> String)? = null
 ) {
@@ -234,6 +235,7 @@ class AndroidPluginManager(
                 pluginId = pluginId,
                 dataDir = pluginDataDir,
                 pluginInstallDir = pluginDir,
+                host = pluginHost,
                 appLanguageProvider = appLanguageProvider,
                 appStringProvider = appStringProvider
             )

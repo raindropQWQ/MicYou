@@ -7,13 +7,16 @@
 - [Plugin](#plugin)
 - [PluginManifest](#pluginmanifest)
 - [PluginContext](#plugincontext)
+- [PluginHost](#pluginhost)
 - [PluginInfo](#plugininfo)
 - [PluginPlatform](#pluginplatform)
-- [PluginPermission](#pluginpermission)
 - [PluginUIProvider](#pluginuiprovider)
 - [PluginSettingsProvider](#pluginsettingsprovider)
+- [AudioEffectProvider](#audioeffectprovider)
+- [AudioEffectPlugin](#audioeffectplugin)
 - [PluginLocalization](#pluginlocalization)
 - [PluginLocalizationProvider](#pluginlocalizationprovider)
+- [数据类型](#数据类型)
 
 ---
 
@@ -57,6 +60,10 @@ fun onLoad(context: PluginContext)
 override fun onLoad(context: PluginContext) {
     this.context = context
     context.log("Plugin ${manifest.name} loaded")
+    
+    // 访问主机能力
+    val host = context.host
+    context.log("Platform: ${host.platform.name}")
 }
 ```
 
@@ -70,14 +77,6 @@ fun onEnable()
 
 **调用时机：** 用户在设置中启用插件时调用。
 
-**示例：**
-```kotlin
-override fun onEnable() {
-    context?.log("Plugin enabled")
-    startServices()
-}
-```
-
 #### onDisable
 
 ```kotlin
@@ -88,14 +87,6 @@ fun onDisable()
 
 **调用时机：** 用户在设置中禁用插件时调用。
 
-**示例：**
-```kotlin
-override fun onDisable() {
-    context?.log("Plugin disabled")
-    stopServices()
-}
-```
-
 #### onUnload
 
 ```kotlin
@@ -105,13 +96,6 @@ fun onUnload()
 插件卸载时调用。
 
 **调用时机：** 插件被删除或应用关闭时调用。
-
-**示例：**
-```kotlin
-override fun onUnload() {
-    releaseResources()
-}
-```
 
 ---
 
@@ -129,10 +113,7 @@ data class PluginManifest(
     val description: String = "",
     val tags: List<String> = emptyList(),
     val platform: PluginPlatform = PluginPlatform.BOTH,
-    @SerialName("minApiVersion")
     val minApiVersion: String,
-    val permissions: List<String> = emptyList(),
-    @SerialName("mainClass")
     val mainClass: String
 )
 ```
@@ -149,25 +130,7 @@ data class PluginManifest(
 | `tags` | `List<String>` | 否 | `emptyList()` | 标签列表 |
 | `platform` | `PluginPlatform` | 否 | `BOTH` | 支持的平台 |
 | `minApiVersion` | `String` | 是 | - | 最低 API 版本要求 |
-| `permissions` | `List<String>` | 否 | `emptyList()` | 所需权限列表 |
 | `mainClass` | `String` | 是 | - | 主类全限定名 |
-
-### 示例
-
-```kotlin
-val manifest = PluginManifest(
-    id = "com.example.myplugin",
-    name = "My Plugin",
-    version = "1.0.0",
-    author = "Developer",
-    description = "A sample plugin",
-    tags = listOf("utility", "audio"),
-    platform = PluginPlatform.DESKTOP,
-    minApiVersion = "1.0.0",
-    permissions = listOf("network", "storage"),
-    mainClass = "com.example.myplugin.MyPlugin"
-)
-```
 
 ---
 
@@ -179,10 +142,9 @@ val manifest = PluginManifest(
 interface PluginContext {
     val pluginId: String
     val pluginDataDir: String
-    
-    // 本地化接口
     val localization: PluginLocalization
     val appLocalization: PluginLocalization
+    val host: PluginHost
     
     // 数据存储
     fun getString(key: String, defaultValue: String): String
@@ -208,100 +170,110 @@ interface PluginContext {
 | `pluginDataDir` | `String` | 插件专属数据目录路径 |
 | `localization` | `PluginLocalization` | 插件本地化接口 |
 | `appLocalization` | `PluginLocalization` | 应用全局本地化接口 |
+| `host` | `PluginHost` | 主机应用访问接口 |
 
-### 数据存储方法
+---
 
-#### getString / putString
+## PluginHost
 
-```kotlin
-fun getString(key: String, defaultValue: String): String
-fun putString(key: String, value: String)
-```
-
-存储和读取字符串值。
-
-**示例：**
-```kotlin
-context.putString("lastUrl", "https://example.com")
-val url = context.getString("lastUrl", "")
-```
-
-#### getBoolean / putBoolean
+提供对主机应用的访问能力，允许插件与主机交互。
 
 ```kotlin
-fun getBoolean(key: String, defaultValue: Boolean): Boolean
-fun putBoolean(key: String, value: Boolean)
-```
-
-存储和读取布尔值。
-
-**示例：**
-```kotlin
-context.putBoolean("autoConnect", true)
-val autoConnect = context.getBoolean("autoConnect", false)
-```
-
-#### getInt / putInt
-
-```kotlin
-fun getInt(key: String, defaultValue: Int): Int
-fun putInt(key: String, value: Int)
-```
-
-存储和读取整数值。
-
-**示例：**
-```kotlin
-context.putInt("volume", 80)
-val volume = context.getInt("volume", 50)
-```
-
-#### getFloat / putFloat
-
-```kotlin
-fun getFloat(key: String, defaultValue: Float): Float
-fun putFloat(key: String, value: Float)
-```
-
-存储和读取浮点数值。
-
-**示例：**
-```kotlin
-context.putFloat("gain", 1.5f)
-val gain = context.getFloat("gain", 1.0f)
-```
-
-### 日志方法
-
-#### log
-
-```kotlin
-fun log(message: String)
-```
-
-记录信息日志。
-
-**示例：**
-```kotlin
-context.log("Connection established")
-```
-
-#### logError
-
-```kotlin
-fun logError(message: String, throwable: Throwable? = null)
-```
-
-记录错误日志。
-
-**示例：**
-```kotlin
-try {
-    // some operation
-} catch (e: Exception) {
-    context.logError("Operation failed", e)
+interface PluginHost {
+    // 状态流
+    val streamState: StateFlow<StreamState>
+    val audioLevels: StateFlow<Float>
+    val isMuted: StateFlow<Boolean>
+    val connectionInfo: StateFlow<ConnectionInfo?>
+    val audioConfig: StateFlow<AudioConfig>
+    
+    // 音频配置
+    fun updateAudioConfig(config: AudioConfig)
+    fun updateAudioConfig(block: AudioConfig.() -> AudioConfig)
+    
+    // 流控制
+    suspend fun startStream(ip: String, port: Int, mode: ConnectionMode, isClient: Boolean)
+    suspend fun stopStream()
+    suspend fun setMute(muted: Boolean)
+    fun setMonitoring(enabled: Boolean)
+    
+    // 音频效果注册
+    fun registerAudioEffect(effect: AudioEffectProvider, priority: Int = 100)
+    fun unregisterAudioEffect(effect: AudioEffectProvider)
+    
+    // UI 反馈
+    fun showSnackbar(message: String)
+    fun showNotification(title: String, message: String)
+    
+    // 设置访问
+    fun getSetting(key: String, defaultValue: String): String
+    fun setSetting(key: String, value: String)
+    fun getSettingBoolean(key: String, defaultValue: Boolean): Boolean
+    fun setSettingBoolean(key: String, value: Boolean)
+    fun getSettingInt(key: String, defaultValue: Int): Int
+    fun setSettingInt(key: String, value: Int)
+    fun getSettingFloat(key: String, defaultValue: Float): Float
+    fun setSettingFloat(key: String, value: Float)
+    
+    // 平台信息
+    val platform: PlatformInfo
 }
 ```
+
+### 状态流
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `streamState` | `StateFlow<StreamState>` | 当前流状态 |
+| `audioLevels` | `StateFlow<Float>` | 音频电平 |
+| `isMuted` | `StateFlow<Boolean>` | 静音状态 |
+| `connectionInfo` | `StateFlow<ConnectionInfo?>` | 连接信息 |
+| `audioConfig` | `StateFlow<AudioConfig>` | 音频配置 |
+
+### 方法
+
+#### updateAudioConfig
+
+```kotlin
+fun updateAudioConfig(config: AudioConfig)
+fun updateAudioConfig(block: AudioConfig.() -> AudioConfig)
+```
+
+更新音频处理配置。
+
+**示例：**
+```kotlin
+context.host.updateAudioConfig { 
+    copy(enableNS = true, nsType = NoiseReductionType.RNNoise)
+}
+```
+
+#### startStream / stopStream
+
+```kotlin
+suspend fun startStream(ip: String, port: Int, mode: ConnectionMode, isClient: Boolean)
+suspend fun stopStream()
+```
+
+启动/停止音频流。
+
+#### registerAudioEffect / unregisterAudioEffect
+
+```kotlin
+fun registerAudioEffect(effect: AudioEffectProvider, priority: Int = 100)
+fun unregisterAudioEffect(effect: AudioEffectProvider)
+```
+
+注册/注销自定义音频效果器。优先级数值越小，越先执行。
+
+#### showSnackbar / showNotification
+
+```kotlin
+fun showSnackbar(message: String)
+fun showNotification(title: String, message: String)
+```
+
+显示 UI 反馈。
 
 ---
 
@@ -319,16 +291,6 @@ data class PluginInfo(
 )
 ```
 
-### 属性
-
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| `manifest` | `PluginManifest` | 插件元数据 |
-| `isEnabled` | `Boolean` | 是否已启用 |
-| `isLoaded` | `Boolean` | 是否已加载 |
-| `installPath` | `String` | 安装路径 |
-| `iconPath` | `String?` | 图标路径（可选） |
-
 ---
 
 ## PluginPlatform
@@ -337,62 +299,36 @@ data class PluginInfo(
 
 ```kotlin
 enum class PluginPlatform {
-    MOBILE,
-    DESKTOP,
-    BOTH
+    MOBILE,    // 仅移动端
+    DESKTOP,   // 仅桌面端
+    BOTH       // 两端都需要安装
 }
 ```
-
-### 值说明
-
-| 值 | 说明 |
-|------|------|
-| `MOBILE` | 仅移动端（Android）支持 |
-| `DESKTOP` | 仅桌面端（JVM）支持 |
-| `BOTH` | 两端都需要安装，用于跨平台功能 |
-
----
-
-## PluginPermission
-
-插件权限枚举。
-
-```kotlin
-enum class PluginPermission(val id: String) {
-    STORAGE("storage"),
-    NETWORK("network"),
-    CAMERA("camera"),
-    MICROPHONE("microphone"),
-    BLUETOOTH("bluetooth")
-}
-```
-
-### 权限说明
-
-| 权限 | ID | 说明 |
-|------|------|------|
-| `STORAGE` | `storage` | 文件存储访问权限 |
-| `NETWORK` | `network` | 网络访问权限 |
-| `CAMERA` | `camera` | 摄像头访问权限 |
-| `MICROPHONE` | `microphone` | 麦克风访问权限 |
-| `BLUETOOTH` | `bluetooth` | 蓝牙访问权限 |
 
 ---
 
 ## PluginUIProvider
 
-插件 UI 提供者接口。实现此接口可为插件提供 UI 组件。
+插件 UI 提供者接口。
 
 ```kotlin
+enum class MobileUIMode {
+    Dialog,    // 对话框模式
+    NewScreen  // 新页面模式
+}
+
 interface PluginUIProvider {
     val hasMainWindow: Boolean get() = false
     val hasDialog: Boolean get() = false
     
-    // 窗口配置（仅桌面端）
+    // 窗口配置（桌面端）
     val windowWidth: Dp get() = 600.dp
     val windowHeight: Dp get() = 500.dp
     val windowTitle: String get() = "Plugin Window"
     val windowResizable: Boolean get() = true
+    
+    // 移动端 UI 模式
+    val mobileUIMode: MobileUIMode get() = MobileUIMode.Dialog
     
     @Composable
     fun MainWindow(onClose: () -> Unit) {}
@@ -408,73 +344,17 @@ interface PluginUIProvider {
 |------|------|--------|------|
 | `hasMainWindow` | `Boolean` | `false` | 是否提供主窗口 |
 | `hasDialog` | `Boolean` | `false` | 是否提供对话框 |
-| `windowWidth` | `Dp` | `600.dp` | 窗口宽度（仅桌面端） |
-| `windowHeight` | `Dp` | `500.dp` | 窗口高度（仅桌面端） |
+| `windowWidth` | `Dp` | `600.dp` | 窗口宽度（桌面端） |
+| `windowHeight` | `Dp` | `500.dp` | 窗口高度（桌面端） |
 | `windowTitle` | `String` | `"Plugin Window"` | 窗口标题 |
 | `windowResizable` | `Boolean` | `true` | 窗口是否可调整大小 |
-
-### 方法
-
-#### MainWindow
-
-```kotlin
-@Composable
-fun MainWindow(onClose: () -> Unit)
-```
-
-插件主窗口内容。当用户从插件列表点击插件时显示。
-
-**参数：**
-- `onClose` - 关闭窗口的回调
-
-**示例：**
-```kotlin
-@Composable
-override fun MainWindow(onClose: () -> Unit) {
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("My Plugin Window", style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onClose) {
-            Text("Close")
-        }
-    }
-}
-```
-
-#### DialogContent
-
-```kotlin
-@Composable
-fun DialogContent(onDismiss: () -> Unit)
-```
-
-插件对话框内容。
-
-**参数：**
-- `onDismiss` - 关闭对话框的回调
-
-**示例：**
-```kotlin
-@Composable
-override fun DialogContent(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Plugin Dialog") },
-        text = { Text("This is a plugin dialog content") },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("OK")
-            }
-        }
-    )
-}
-```
+| `mobileUIMode` | `MobileUIMode` | `Dialog` | 移动端 UI 模式 |
 
 ---
 
 ## PluginSettingsProvider
 
-插件设置页面提供者接口。实现此接口可为插件提供设置页面。
+插件设置页面提供者接口。
 
 ```kotlin
 interface PluginSettingsProvider {
@@ -483,66 +363,23 @@ interface PluginSettingsProvider {
 }
 ```
 
-### 方法
-
-#### SettingsContent
-
-```kotlin
-@Composable
-fun SettingsContent()
-```
-
-插件设置页面内容。在设置 → 插件详情中显示。
-
-**示例：**
-```kotlin
-class MyPlugin : Plugin, PluginSettingsProvider {
-    @Composable
-    override fun SettingsContent() {
-        var enabled by remember { mutableStateOf(false) }
-        var serverUrl by remember { mutableStateOf("") }
-        
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Plugin Settings", style = MaterialTheme.typography.titleMedium)
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Enable feature")
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = { enabled = it }
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            OutlinedTextField(
-                value = serverUrl,
-                onValueChange = { serverUrl = it },
-                label = { Text("Server URL") },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-```
-
 ---
 
-## PluginLocalization
+## AudioEffectProvider
 
-插件本地化接口，提供多语言支持。
+音频效果提供者接口，用于实现自定义音频处理。
 
 ```kotlin
-interface PluginLocalization {
-    val currentLanguage: String
-    fun getString(key: String, defaultValue: String = key): String
-    fun getString(key: String, vararg formatArgs: Any): String
-    fun setLanguage(languageCode: String)
-    fun getSupportedLanguages(): List<String>
-    fun reload()
+interface AudioEffectProvider {
+    val id: String
+    val name: String
+    val description: String
+    var isEnabled: Boolean
+    
+    fun process(input: ShortArray, channelCount: Int, sampleRate: Int): ShortArray
+    fun reset()
+    fun release()
+    fun onConfigChanged(config: AudioConfig) {}
 }
 ```
 
@@ -550,167 +387,103 @@ interface PluginLocalization {
 
 | 属性 | 类型 | 说明 |
 |------|------|------|
-| `currentLanguage` | `String` | 当前语言代码，如 "zh", "en" |
+| `id` | `String` | 效果器唯一标识符 |
+| `name` | `String` | 效果器显示名称 |
+| `description` | `String` | 效果器描述 |
+| `isEnabled` | `Boolean` | 是否启用 |
 
 ### 方法
 
-#### getString
+#### process
 
 ```kotlin
-fun getString(key: String, defaultValue: String = key): String
+fun process(input: ShortArray, channelCount: Int, sampleRate: Int): ShortArray
 ```
 
-获取本地化字符串。
+处理音频数据。
 
 **参数：**
-- `key` - 字符串键名
-- `defaultValue` - 默认值，当找不到对应本地化字符串时返回
+- `input` - 输入音频采样数据（16-bit PCM）
+- `channelCount` - 声道数
+- `sampleRate` - 采样率
 
-**返回：** 本地化后的字符串
-
-**示例：**
-```kotlin
-val title = context.localization.getString("settings_title", "Settings")
-```
-
-#### getString (带格式化参数)
-
-```kotlin
-fun getString(key: String, vararg formatArgs: Any): String
-```
-
-获取带格式参数的本地化字符串。
-
-**参数：**
-- `key` - 字符串键名
-- `formatArgs` - 格式化参数
-
-**示例：**
-```kotlin
-// 本地化字符串: "Found %d items"
-val message = context.localization.getString("items_found", 5)
-// 结果: "Found 5 items"
-```
-
-#### setLanguage
-
-```kotlin
-fun setLanguage(languageCode: String)
-```
-
-切换语言。
-
-**参数：**
-- `languageCode` - 语言代码，如 "zh", "en"
-
-#### getSupportedLanguages
-
-```kotlin
-fun getSupportedLanguages(): List<String>
-```
-
-获取支持的语言列表。
-
-**返回：** 语言代码列表
-
-#### reload
-
-```kotlin
-fun reload()
-```
-
-重新加载本地化资源。当插件更新或语言切换时调用。
+**返回：** 处理后的音频数据
 
 ---
 
-## PluginLocalizationProvider
+## AudioEffectPlugin
 
-插件本地化提供者接口。插件可以实现此接口来提供自己的本地化资源。
+音频效果插件接口，简化音频效果插件的实现。
 
 ```kotlin
-interface PluginLocalizationProvider {
-    fun getLocalizedString(languageCode: String, key: String): String?
-    fun getSupportedLanguages(): List<String>
+interface AudioEffectPlugin : Plugin {
+    val audioEffectProvider: AudioEffectProvider
+    val effectPriority: Int get() = 100
 }
 ```
 
-### 方法
+---
 
-#### getLocalizedString
+## 数据类型
+
+### StreamState
 
 ```kotlin
-fun getLocalizedString(languageCode: String, key: String): String?
-```
-
-获取插件的本地化字符串。
-
-**参数：**
-- `languageCode` - 语言代码
-- `key` - 字符串键名
-
-**返回：** 本地化字符串，如果没有找到返回 null
-
-**示例：**
-```kotlin
-class MyPlugin : Plugin, PluginLocalizationProvider {
-    private val zhStrings = mapOf(
-        "settings_title" to "设置",
-        "save_button" to "保存"
-    )
-    private val enStrings = mapOf(
-        "settings_title" to "Settings",
-        "save_button" to "Save"
-    )
-    
-    override fun getLocalizedString(languageCode: String, key: String): String? {
-        return when (languageCode) {
-            "zh", "zh-CN" -> zhStrings[key]
-            "en" -> enStrings[key]
-            else -> enStrings[key]
-        }
-    }
-    
-    override fun getSupportedLanguages(): List<String> {
-        return listOf("zh", "en")
-    }
+enum class StreamState {
+    Idle, Connecting, Streaming, Error
 }
 ```
 
-### 在 PluginContext 中访问
-
-`PluginContext` 提供两个本地化接口：
+### ConnectionMode
 
 ```kotlin
-interface PluginContext {
-    /**
-     * 插件本地化接口
-     * 用于获取插件的本地化字符串
-     */
-    val localization: PluginLocalization
-    
-    /**
-     * 应用全局本地化接口
-     * 用于获取应用级别的本地化字符串
-     */
-    val appLocalization: PluginLocalization
-    
-    // ... 其他方法
+enum class ConnectionMode {
+    Wifi, Bluetooth, Usb
 }
 ```
 
-**使用示例：**
+### NoiseReductionType
+
 ```kotlin
-@Composable
-override fun SettingsContent() {
-    val strings = context?.localization
-    val appStrings = context?.appLocalization
-    
-    Column {
-        // 使用插件自己的本地化
-        Text(strings?.getString("settings_title", "Settings") ?: "Settings")
-        
-        // 使用应用的本地化
-        Text(appStrings?.getString("cancel", "Cancel") ?: "Cancel")
-    }
+enum class NoiseReductionType {
+    Ulunas, RNNoise, Speexdsp, None
 }
+```
+
+### AudioConfig
+
+```kotlin
+data class AudioConfig(
+    val enableNS: Boolean = false,
+    val nsType: NoiseReductionType = NoiseReductionType.RNNoise,
+    val enableAGC: Boolean = false,
+    val agcTargetLevel: Int = 32000,
+    val enableVAD: Boolean = false,
+    val vadThreshold: Int = 10,
+    val enableDereverb: Boolean = false,
+    val dereverbLevel: Float = 0.5f,
+    val amplification: Float = 0.0f
+)
+```
+
+### ConnectionInfo
+
+```kotlin
+data class ConnectionInfo(
+    val mode: ConnectionMode,
+    val ipAddress: String,
+    val port: Int,
+    val isClient: Boolean
+)
+```
+
+### PlatformInfo
+
+```kotlin
+data class PlatformInfo(
+    val name: String,
+    val version: String,
+    val isDesktop: Boolean,
+    val isMobile: Boolean
+)
 ```

@@ -16,6 +16,7 @@ my-plugin/
 │       │       ├── MyPlugin.kt           # 主类
 │       │       ├── MyPluginUI.kt         # UI 组件
 │       │       ├── MyPluginSettings.kt   # 设置页面
+│       │       ├── AudioEffects.kt       # 音频效果（可选）
 │       │       └── model/                # 数据模型
 │       │           └── Config.kt
 │       └── resources/
@@ -93,6 +94,129 @@ class MyPlugin : Plugin {
         jobs.forEach { it.cancel() }
         jobs.clear()
     }
+}
+```
+
+## 访问主机能力
+
+### 监听状态变化
+
+```kotlin
+@Composable
+override fun MainWindow(onClose: () -> Unit) {
+    val host = context?.host ?: return
+    
+    // 监听流状态
+    val streamState by host.streamState.collectAsState()
+    
+    // 监听音频电平
+    val audioLevel by host.audioLevels.collectAsState()
+    
+    // 监听音频配置
+    val audioConfig by host.audioConfig.collectAsState()
+    
+    Column {
+        Text("Stream: $streamState")
+        Text("Level: $audioLevel")
+        Text("NS: ${audioConfig.enableNS}")
+    }
+}
+```
+
+### 修改音频配置
+
+```kotlin
+class MyPlugin : Plugin {
+    fun enableNoiseReduction() {
+        context?.host?.updateAudioConfig { config ->
+            config.copy(
+                enableNS = true,
+                nsType = NoiseReductionType.RNNoise
+            )
+        }
+    }
+    
+    fun setAmplification(gainDb: Float) {
+        context?.host?.updateAudioConfig { config ->
+            config.copy(amplification = gainDb)
+        }
+    }
+}
+```
+
+## 音频效果开发
+
+### 实现自定义降噪
+
+```kotlin
+class CustomNoiseReducer : AudioEffectProvider {
+    override val id = "com.example.custom-ns"
+    override val name = "Custom Noise Reducer"
+    override val description = "AI-powered noise reduction"
+    override var isEnabled = true
+    
+    private var model: NoiseModel? = null
+    
+    override fun process(input: ShortArray, channelCount: Int, sampleRate: Int): ShortArray {
+        if (!isEnabled) return input
+        
+        // 实现降噪算法
+        val output = ShortArray(input.size)
+        for (i in input.indices) {
+            output[i] = reduceNoise(input[i])
+        }
+        return output
+    }
+    
+    private fun reduceNoise(sample: Short): Short {
+        // 降噪逻辑
+        return sample
+    }
+    
+    override fun reset() {
+        model?.reset()
+    }
+    
+    override fun release() {
+        model?.close()
+        model = null
+    }
+    
+    override fun onConfigChanged(config: AudioConfig) {
+        // 根据配置调整参数
+    }
+}
+```
+
+### 注册音频效果
+
+```kotlin
+class MyPlugin : Plugin {
+    private val noiseReducer = CustomNoiseReducer()
+    
+    override fun onLoad(context: PluginContext) {
+        // 注册效果器，优先级 50（数值越小越先执行）
+        context.host.registerAudioEffect(noiseReducer, priority = 50)
+    }
+    
+    override fun onUnload() {
+        // 注销效果器
+        context?.host?.unregisterAudioEffect(noiseReducer)
+        noiseReducer.release()
+    }
+}
+```
+
+### 使用 AudioEffectPlugin 简化
+
+```kotlin
+class MyPlugin : AudioEffectPlugin {
+    override val manifest = PluginManifest(...)
+    
+    override val audioEffectProvider = CustomNoiseReducer()
+    override val effectPriority = 50
+    
+    // 生命周期由 AudioEffectPlugin 自动处理
 }
 ```
 
@@ -175,6 +299,18 @@ class MyPluginUI : PluginUIProvider {
 }
 ```
 
+### 移动端 UI 模式选择
+
+```kotlin
+class MyPlugin : Plugin, PluginUIProvider {
+    // 对于复杂 UI，使用新页面模式
+    override val mobileUIMode = MobileUIMode.NewScreen
+    
+    // 对于简单对话框，使用对话框模式
+    // override val mobileUIMode = MobileUIMode.Dialog
+}
+```
+
 ### 设置页面最佳实践
 
 ```kotlin
@@ -204,7 +340,6 @@ class MyPluginSettings : PluginSettingsProvider {
                 onValueChange = { port = it.toIntOrNull() ?: 8080 },
                 label = { Text("Port") },
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true
             )
             
@@ -221,62 +356,101 @@ class MyPluginSettings : PluginSettingsProvider {
 }
 ```
 
-## 错误处理
+## 通知和反馈
 
-### 健壮的错误处理
+### 显示消息
 
 ```kotlin
 class MyPlugin : Plugin {
-    override fun onEnable() {
-        try {
-            initializePlugin()
-        } catch (e: Exception) {
-            context?.logError("Failed to initialize plugin", e)
-            // 优雅降级
-            enterFallbackMode()
-        }
-    }
-    
-    private fun initializePlugin() {
-        // 可能失败的操作
-    }
-    
-    private fun enterFallbackMode() {
-        // 提供基本功能
+    fun showFeedback() {
+        val host = context?.host ?: return
+        
+        // 简短消息
+        host.showSnackbar("Operation completed!")
+        
+        // 系统通知
+        host.showNotification(
+            title = "My Plugin",
+            message = "Background task finished successfully"
+        )
     }
 }
 ```
 
-### 网络请求错误处理
+## 错误处理
+
+### 优雅处理错误
 
 ```kotlin
-suspend fun fetchData(): Result<Data> {
-    return try {
-        val response = httpClient.get("https://api.example.com/data")
-        if (response.status == HttpStatusCode.OK) {
-            Result.success(response.body())
-        } else {
-            Result.failure(Exception("HTTP ${response.status}"))
+class MyPlugin : Plugin {
+    fun performOperation() {
+        try {
+            val result = riskyOperation()
+            context?.log("Operation succeeded: $result")
+        } catch (e: Exception) {
+            context?.logError("Operation failed", e)
+            context?.host?.showSnackbar("Operation failed: ${e.message}")
         }
-    } catch (e: Exception) {
-        context?.logError("Network request failed", e)
-        Result.failure(e)
+    }
+}
+```
+
+### 验证主机状态
+
+```kotlin
+class MyPlugin : Plugin {
+    fun startStreaming() {
+        val host = context?.host ?: run {
+            context?.logError("Host not available")
+            return
+        }
+        
+        if (host.streamState.value != StreamState.Idle) {
+            host.showSnackbar("Please stop current stream first")
+            return
+        }
+        
+        // 启动流
     }
 }
 ```
 
 ## 性能优化
 
-### 异步操作
+### 音频处理优化
+
+```kotlin
+class OptimizedEffect : AudioEffectProvider {
+    private var buffer: ShortArray = ShortArray(0)
+    
+    override fun process(input: ShortArray, channelCount: Int, sampleRate: Int): ShortArray {
+        // 重用缓冲区避免分配
+        if (buffer.size != input.size) {
+            buffer = ShortArray(input.size)
+        }
+        
+        // 使用 SIMD 或其他优化技术
+        for (i in input.indices) {
+            buffer[i] = processSample(input[i])
+        }
+        
+        return buffer
+    }
+}
+```
+
+### 协程使用
 
 ```kotlin
 class MyPlugin : Plugin {
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val scope = CoroutineScope(Dispatchers.Default)
     
     override fun onEnable() {
         scope.launch {
-            val data = loadDataAsync()
-            processData(data)
+            while (isActive) {
+                performBackgroundTask()
+                delay(1000)
+            }
         }
     }
     
@@ -285,152 +459,3 @@ class MyPlugin : Plugin {
     }
 }
 ```
-
-### 懒加载
-
-```kotlin
-class MyPlugin : Plugin {
-    private val heavyResource: Resource by lazy {
-        loadHeavyResource()
-    }
-    
-    fun useResource() {
-        // 只在第一次使用时加载
-        heavyResource.doSomething()
-    }
-}
-```
-
-### 缓存策略
-
-```kotlin
-class MyPlugin : Plugin {
-    private val cache = mutableMapOf<String, Data>()
-    private var lastCacheTime = 0L
-    private val cacheTimeout = 5 * 60 * 1000L // 5 minutes
-    
-    fun getData(key: String): Data? {
-        val now = System.currentTimeMillis()
-        if (now - lastCacheTime > cacheTimeout) {
-            cache.clear()
-            lastCacheTime = now
-        }
-        
-        return cache.getOrPut(key) {
-            fetchDataFromNetwork(key)
-        }
-    }
-}
-```
-
-## 安全考虑
-
-### 输入验证
-
-```kotlin
-fun processUserInput(input: String) {
-    // 验证输入
-    if (input.length > 1000) {
-        context?.logError("Input too long")
-        return
-    }
-    
-    if (input.contains(Regex("[<>\"']"))) {
-        context?.logError("Invalid characters in input")
-        return
-    }
-    
-    // 处理输入
-    safeProcess(input)
-}
-```
-
-### 敏感数据处理
-
-```kotlin
-class MyPlugin : Plugin {
-    private fun saveApiKey(key: String) {
-        // 不要明文存储敏感数据
-        val encrypted = encrypt(key)
-        context?.putString("apiKey", encrypted)
-    }
-    
-    private fun getApiKey(): String? {
-        val encrypted = context?.getString("apiKey", "") ?: return null
-        return if (encrypted.isNotEmpty()) decrypt(encrypted) else null
-    }
-}
-```
-
-## 版本兼容性
-
-### API 版本检查
-
-```kotlin
-class MyPlugin : Plugin {
-    override fun onLoad(context: PluginContext) {
-        val apiVersion = getApiVersion()
-        val minRequired = parseVersion(manifest.minApiVersion)
-        
-        if (apiVersion < minRequired) {
-            context.logError("API version ${manifest.minApiVersion} required, but $apiVersion available")
-            return
-        }
-        
-        initializePlugin()
-    }
-}
-```
-
-### 向后兼容
-
-```kotlin
-fun loadConfig(): Config {
-    val version = context?.getInt("configVersion", 1) ?: 1
-    
-    return when (version) {
-        1 -> loadConfigV1()
-        2 -> loadConfigV2()
-        else -> Config() // 默认配置
-    }
-}
-```
-
-## 测试
-
-### 单元测试
-
-```kotlin
-class MyPluginTest {
-    @Test
-    fun `test plugin initialization`() {
-        val plugin = MyPlugin()
-        val mockContext = mockPluginContext()
-        
-        plugin.onLoad(mockContext)
-        
-        verify { mockContext.log("Plugin loaded") }
-    }
-    
-    private fun mockPluginContext(): PluginContext {
-        return mockk {
-            every { pluginId } returns "test-plugin"
-            every { pluginDataDir } returns "/tmp/test"
-            every { log(any()) } just Runs
-        }
-    }
-}
-```
-
-## 发布清单
-
-发布插件前检查：
-
-- [ ] `plugin.json` 信息完整准确
-- [ ] 版本号已更新
-- [ ] 所有权限已声明
-- [ ] 无敏感信息硬编码
-- [ ] 错误处理完善
-- [ ] 资源已清理
-- [ ] 文档已更新
-- [ ] 测试通过

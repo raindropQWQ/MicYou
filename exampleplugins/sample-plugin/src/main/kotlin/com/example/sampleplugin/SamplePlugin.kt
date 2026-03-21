@@ -25,19 +25,18 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
         tags = listOf("utility", "demo"),
         platform = PluginPlatform.DESKTOP,
         minApiVersion = "1.0.0",
-        permissions = listOf("storage"),
         mainClass = "com.example.sampleplugin.SamplePlugin"
     )
 
     override val hasMainWindow: Boolean = true
     
-    // 自定义窗口大小和标题
     override val windowWidth: Dp get() = 500.dp
     override val windowHeight: Dp get() = 600.dp
     override val windowTitle: String get() = "Sample Plugin - Demo Window"
     override val windowResizable: Boolean get() = true
+    
+    override val mobileUIMode: MobileUIMode get() = MobileUIMode.NewScreen
 
-    // 插件本地化提供者 - 返回插件支持的本地化字符串
     override fun getLocalizedString(languageCode: String, key: String): String? {
         return PluginStrings.getString(languageCode, key)
     }
@@ -50,10 +49,16 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
         this.context = context
         counter = context.getInt("counter", 0)
         context.log("SamplePlugin loaded with counter=$counter")
+        
+        val host = context.host
+        context.log("Platform: ${host.platform.name}, isDesktop: ${host.platform.isDesktop}")
     }
 
     override fun onEnable() {
         context?.log("SamplePlugin enabled")
+        context?.host?.streamState?.value?.let { state ->
+            context?.log("Current stream state: $state")
+        }
     }
 
     override fun onDisable() {
@@ -79,6 +84,11 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
         var localCounter by remember { mutableStateOf(counter) }
         var userName by remember { mutableStateOf(context?.getString("userName", "") ?: "") }
         var showAboutDialog by remember { mutableStateOf(false) }
+        
+        val host = context?.host
+        val streamState by host?.streamState?.collectAsState() ?: remember { mutableStateOf(StreamState.Idle) }
+        val audioLevel by host?.audioLevels?.collectAsState() ?: remember { mutableStateOf(0f) }
+        val isMuted by host?.isMuted?.collectAsState() ?: remember { mutableStateOf(false) }
 
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -92,7 +102,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 标题
                 Text(
                     text = manifest.name,
                     style = MaterialTheme.typography.headlineLarge,
@@ -107,7 +116,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 计数器卡片
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -147,7 +155,71 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                     }
                 }
 
-                // 用户信息卡片
+                host?.let { h ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Host Status",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Stream State:")
+                                Text(streamState.name)
+                            }
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Audio Level:")
+                                Text("%.2f".format(audioLevel))
+                            }
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Muted:")
+                                Text(if (isMuted) "Yes" else "No")
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        h.showSnackbar("Hello from ${manifest.name}!")
+                                    }
+                                ) {
+                                    Text("Show Snackbar")
+                                }
+                                
+                                Button(
+                                    onClick = {
+                                        h.showNotification(manifest.name, "This is a notification from the plugin!")
+                                    }
+                                ) {
+                                    Text("Notify")
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -181,7 +253,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                     }
                 }
 
-                // 插件信息卡片
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -205,7 +276,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // 底部按钮
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
@@ -221,7 +291,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
             }
         }
 
-        // 关于对话框
         if (showAboutDialog) {
             AlertDialog(
                 onDismissRequest = { showAboutDialog = false },
@@ -251,7 +320,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
     @Composable
     override fun SettingsContent() {
         val strings = context?.localization
-        // 从存储中读取配置
         var enableNotifications by remember { 
             mutableStateOf(context?.getBoolean("enableNotifications", true) ?: true) 
         }
@@ -274,7 +342,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 通知设置
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier
@@ -311,7 +378,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                 }
             }
 
-            // 显示设置
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier
@@ -324,7 +390,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                         style = MaterialTheme.typography.titleMedium
                     )
                     
-                    // 最大项目数
                     Text(strings?.getString("max_items", "Max Items")?.let { "$it: $maxItems" } ?: "Max Items: $maxItems")
                     Slider(
                         value = maxItems.toFloat(),
@@ -336,9 +401,8 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                         steps = 49
                     )
                     
-                    Divider()
+                    HorizontalDivider()
                     
-                    // 主题选择
                     Text(strings?.getString("theme_mode", "Theme Mode") ?: "Theme Mode")
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -372,7 +436,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                 }
             }
 
-            // 网络设置
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier
@@ -400,7 +463,7 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                         Text(strings?.getString("save_address", "Save Address") ?: "Save Address")
                     }
                     
-                    Divider()
+                    HorizontalDivider()
                     
                     Text(strings?.getString("refresh_interval", "Refresh Interval")?.let { "$it: ${refreshInterval.toInt()}s" } 
                         ?: "Refresh Interval: ${refreshInterval.toInt()}s")
@@ -416,7 +479,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                 }
             }
 
-            // 关于
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier
@@ -433,7 +495,6 @@ class SamplePlugin : Plugin, PluginUIProvider, PluginSettingsProvider, PluginLoc
                     
                     TextButton(
                         onClick = {
-                            // 重置所有设置
                             enableNotifications = true
                             maxItems = 10
                             theme = "system"
