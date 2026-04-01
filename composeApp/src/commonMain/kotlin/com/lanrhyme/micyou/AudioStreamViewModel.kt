@@ -39,10 +39,11 @@ data class AudioStreamUiState(
 )
 
 class AudioStreamViewModel : ViewModel() {
-    private val audioEngine = AudioEngine()
+    private val _audioEngine = AudioEngine()
+    val audioEngine: AudioEngine get() = _audioEngine
     private val _uiState = MutableStateFlow(AudioStreamUiState())
     val uiState: StateFlow<AudioStreamUiState> = _uiState.asStateFlow()
-    val audioLevels = audioEngine.audioLevels
+    val audioLevels = _audioEngine.audioLevels
     private val settings = SettingsFactory.getSettings()
 
     init {
@@ -119,25 +120,25 @@ class AudioStreamViewModel : ViewModel() {
             applyAutoConfig(savedMode)
         }
         
-        audioEngine.setMonitoring(savedMonitoring)
+        _audioEngine.setMonitoring(savedMonitoring)
         updateAudioEngineConfig()
     }
 
     private fun setupAudioEngineObservers() {
         viewModelScope.launch {
-            audioEngine.streamState.collect { state ->
+            _audioEngine.streamState.collect { state ->
                 _uiState.update { it.copy(streamState = state) }
             }
         }
         
         viewModelScope.launch {
-            audioEngine.lastError.collect { error ->
+            _audioEngine.lastError.collect { error ->
                 _uiState.update { it.copy(errorMessage = error) }
             }
         }
         
         viewModelScope.launch {
-            audioEngine.isMuted.collect { muted ->
+            _audioEngine.isMuted.collect { muted ->
                 _uiState.update { it.copy(isMuted = muted) }
             }
         }
@@ -151,7 +152,7 @@ class AudioStreamViewModel : ViewModel() {
 
     fun updateAudioEngineConfig() {
         val s = _uiState.value
-        audioEngine.updateConfig(
+        _audioEngine.updateConfig(
             enableNS = s.enableNS,
             nsType = s.nsType,
             enableAGC = s.enableAGC,
@@ -190,7 +191,7 @@ class AudioStreamViewModel : ViewModel() {
     fun toggleMute() {
         val newMuteState = !_uiState.value.isMuted
         viewModelScope.launch {
-            audioEngine.setMute(newMuteState)
+            _audioEngine.setMute(newMuteState)
         }
     }
 
@@ -211,8 +212,8 @@ class AudioStreamViewModel : ViewModel() {
             updateAudioEngineConfig()
 
             try {
-                Logger.d("AudioStreamViewModel", "Calling audioEngine.start()")
-                audioEngine.start(ip, port, mode, isClient, sampleRate, channelCount, audioFormat)
+                Logger.d("AudioStreamViewModel", "Calling _audioEngine.start()")
+                _audioEngine.start(ip, port, mode, isClient, sampleRate, channelCount, audioFormat)
                 Logger.i("AudioStreamViewModel", "Stream started successfully")
             } catch (e: Exception) {
                 Logger.e("AudioStreamViewModel", "Failed to start stream", e)
@@ -233,7 +234,7 @@ class AudioStreamViewModel : ViewModel() {
 
     fun stopStream() {
         Logger.i("AudioStreamViewModel", "Stopping stream")
-        audioEngine.stop()
+        _audioEngine.stop()
     }
 
     fun setMode(mode: ConnectionMode) {
@@ -281,7 +282,7 @@ class AudioStreamViewModel : ViewModel() {
     fun setMonitoringEnabled(enabled: Boolean) {
         _uiState.update { it.copy(monitoringEnabled = enabled) }
         settings.putBoolean("monitoring_enabled", enabled)
-        audioEngine.setMonitoring(enabled)
+        _audioEngine.setMonitoring(enabled)
     }
 
     fun setSampleRate(rate: SampleRate) {
@@ -365,8 +366,7 @@ class AudioStreamViewModel : ViewModel() {
     fun setAndroidAudioSource(sourceName: String) {
         _uiState.update { it.copy(androidAudioSourceName = sourceName) }
         settings.putString("android_audio_source", sourceName)
-        // Call Android-specific method to update audio source
-        audioEngine.setAudioSource(sourceName)
+        _audioEngine.setAudioSource(sourceName)
     }
 
     fun setAutoConfig(enabled: Boolean) {
@@ -400,6 +400,6 @@ class AudioStreamViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        audioEngine.stop()
+        _audioEngine.stop()
     }
 }

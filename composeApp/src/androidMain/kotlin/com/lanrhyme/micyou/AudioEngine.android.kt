@@ -146,7 +146,8 @@ actual class AudioEngine actual constructor() {
                 CoroutineScope(Dispatchers.IO).launch {
                     var socket: Socket? = null
                     var recorder: AudioRecord? = null
-                    sendChannel = Channel(capacity = 64, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+                    val channel = Channel<MessageWrapper>(capacity = 64, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+                    sendChannel = channel
                     
                     // 连接抽象
                     var input: ByteReadChannel
@@ -311,7 +312,7 @@ actual class AudioEngine actual constructor() {
                         // --- Writer Loop (Send Channel -> Socket) ---
                         val writerJob = launch {
                             Logger.d("AudioEngine", "Writer loop started")
-                            for (msg in sendChannel!!) {
+                            for (msg in channel) {
                                 try {
                                     val packetBytes = proto.encodeToByteArray(MessageWrapper.serializer(), msg)
                                     val length = packetBytes.size

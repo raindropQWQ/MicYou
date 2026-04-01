@@ -54,7 +54,7 @@ class NetworkServer(
         port: Int,
         mode: ConnectionMode
     ) {
-        if (serverJob != null && serverJob!!.isActive) {
+        serverJob?.takeIf { it.isActive }?.let {
             Logger.w("NetworkServer", "服务器已在运行")
             return
         }
@@ -135,8 +135,9 @@ class NetworkServer(
 
     private suspend fun runTcpServer(port: Int) {
         try {
-            selectorManager = SelectorManager(Dispatchers.IO)
-            serverSocket = aSocket(selectorManager!!).tcp().bind("0.0.0.0", port = port)
+            val manager = SelectorManager(Dispatchers.IO)
+            selectorManager = manager
+            serverSocket = aSocket(manager).tcp().bind("0.0.0.0", port = port)
             Logger.i("NetworkServer", "正在监听 TCP 端口 $port")
             
             while (currentCoroutineContext().isActive) {

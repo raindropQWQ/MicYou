@@ -245,12 +245,10 @@ object PipeWireManager {
         
         destroyNodeByName(SOURCE_NAME, "Virtual Source")
         
-        if (sinkNodeId != null) {
-            destroyNode(sinkNodeId!!, "Virtual Sink")
+        sinkNodeId?.let { id ->
+            destroyNode(id, "Virtual Sink")
             sinkNodeId = null
-        } else {
-            destroyNodeByName(SINK_NAME, "Virtual Sink")
-        }
+        } ?: destroyNodeByName(SINK_NAME, "Virtual Sink")
         
         isSetup = false
         Logger.i("PipeWireManager", "Virtual audio device cleanup complete")

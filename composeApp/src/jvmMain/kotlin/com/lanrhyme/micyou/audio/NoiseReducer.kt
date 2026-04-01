@@ -53,6 +53,9 @@ class NoiseReducer(
             
             val left = rnnoiseFrameLeft
             val right = if (channelCount == 2) rnnoiseFrameRight else null
+            
+            val denoiserL = denoiserLeft ?: return
+            val denoiserR = denoiserRight
 
             var probSum = 0f
             var probN = 0
@@ -63,24 +66,26 @@ class NoiseReducer(
                     for (i in 0 until frameSize) {
                         left[i] = input[base + i]
                     }
-                    val p = denoiserLeft!!.denoiseInPlace(left)
+                    val p = denoiserL.denoiseInPlace(left)
                     for (i in 0 until frameSize) {
                         input[base + i] = left[i]
                     }
                     probSum += p
                     probN++
                 } else {
+                    val rightArr = right ?: continue
+                    val denoiserRightInst = denoiserR ?: continue
                     for (i in 0 until frameSize) {
                         val idx = base + i * 2
                         left[i] = input[idx]
-                        right!![i] = input[idx + 1]
+                        rightArr[i] = input[idx + 1]
                     }
-                    val pL = denoiserLeft!!.denoiseInPlace(left)
-                    val pR = denoiserRight!!.denoiseInPlace(right!!)
+                    val pL = denoiserL.denoiseInPlace(left)
+                    val pR = denoiserRightInst.denoiseInPlace(rightArr)
                     for (i in 0 until frameSize) {
                         val idx = base + i * 2
                         input[idx] = left[i]
-                        input[idx + 1] = right!![i]
+                        input[idx + 1] = rightArr[i]
                     }
                     probSum += ((pL + pR) * 0.5f)
                     probN++
@@ -116,6 +121,9 @@ class NoiseReducer(
                 
                 val left = ulunasFrameLeft
                 val right = if (channelCount == 2) ulunasFrameRight else null
+                
+                val processorL = ulunasProcessorLeft ?: return
+                val processorR = ulunasProcessorRight
 
                 for (f in 0 until frameCount) {
                     val base = f * hopLength * channelCount
@@ -123,18 +131,20 @@ class NoiseReducer(
                         for (i in 0 until hopLength) {
                             left[i] = input[base + i] / 32768.0f
                         }
-                        val processedLeft = ulunasProcessorLeft!!.process(left)
+                        val processedLeft = processorL.process(left)
                         for (i in 0 until hopLength) {
                             input[base + i] = (processedLeft[i] * 32767.0f).toInt().coerceIn(-32768, 32767).toShort()
                         }
                     } else {
+                        val rightArr = right ?: continue
+                        val processorRightInst = processorR ?: continue
                         for (i in 0 until hopLength) {
                             val idx = base + i * 2
                             left[i] = input[idx] / 32768.0f
-                            right!![i] = input[idx + 1] / 32768.0f
+                            rightArr[i] = input[idx + 1] / 32768.0f
                         }
-                        val processedLeft = ulunasProcessorLeft!!.process(left)
-                        val processedRight = ulunasProcessorRight!!.process(right!!)
+                        val processedLeft = processorL.process(left)
+                        val processedRight = processorRightInst.process(rightArr)
                         for (i in 0 until hopLength) {
                             val idx = base + i * 2
                             input[idx] = (processedLeft[i] * 32767.0f).toInt().coerceIn(-32768, 32767).toShort()

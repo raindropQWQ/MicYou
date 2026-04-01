@@ -179,12 +179,14 @@ fun ContributorsDialog(onDismiss: () -> Unit) {
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text("⚠️", fontSize = 48.sp)
-                        Text(
-                            error!!,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
+                        error?.let { errorMsg ->
+                            Text(
+                                errorMsg,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
                 else -> {
@@ -389,21 +391,19 @@ private fun ContributorBubbleItem(
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
-            if (bubble.bitmap != null) {
+            bubble.bitmap?.let { bitmap ->
                 Image(
-                    bitmap = bubble.bitmap!!,
+                    bitmap = bitmap,
                     contentDescription = bubble.contributor.login,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-            } else {
-                Text(
-                    bubble.contributor.login.take(1).uppercase(),
-                    fontSize = (bubble.size * 0.35f).sp,
-                    fontWeight = FontWeight.Bold,
-                    color = onSecondaryContainerColor
-                )
-            }
+            } ?: Text(
+                bubble.contributor.login.take(1).uppercase(),
+                fontSize = (bubble.size * 0.35f).sp,
+                fontWeight = FontWeight.Bold,
+                color = onSecondaryContainerColor
+            )
         }
 
         Spacer(modifier = Modifier.height(6.dp))

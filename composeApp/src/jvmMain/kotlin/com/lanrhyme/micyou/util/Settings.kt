@@ -1,5 +1,6 @@
 package com.lanrhyme.micyou.util
 
+import com.lanrhyme.micyou.Logger
 import com.lanrhyme.micyou.Settings
 import java.util.prefs.Preferences
 
@@ -54,7 +55,7 @@ object JvmSettings : Settings {
         try {
             prefs.clear()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logger.e("JvmSettings", "Failed to clear preferences: ${e.message}", e)
         }
     }
 }

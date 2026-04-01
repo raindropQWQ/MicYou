@@ -341,8 +341,8 @@ object VBCableManager {
                 configureVBCableDevices()
                 setCableOutputAsDefaultMic()
                 
-                if (originalSpeaker != null) {
-                    setDefaultPlaybackDevice(originalSpeaker!!)
+                originalSpeaker?.let { speaker ->
+                    setDefaultPlaybackDevice(speaker)
                 }
                 
                 initialized = true
@@ -352,7 +352,7 @@ object VBCableManager {
                 progressCallback(strings.installNotCompleted)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logger.e("VBCableManager", "Installation error: ${e.message}", e)
             progressCallback(strings.installError.replace("%s", e.message ?: "Unknown error"))
         } finally {
             delay(2000)
@@ -416,8 +416,7 @@ object VBCableManager {
             }
             
         } catch (e: Exception) {
-            Logger.e("VBCableManager", "Failed to download or extract VB-Cable driver: ${e.message}")
-            e.printStackTrace()
+            Logger.e("VBCableManager", "Failed to download or extract VB-Cable driver: ${e.message}", e)
         } finally {
             zipFile.delete()
         }
@@ -433,12 +432,10 @@ object VBCableManager {
     fun restoreDefaultMicrophone() {
         if (!PlatformInfo.isWindows) return
         
-        if (originalSpeaker != null) {
-            setDefaultPlaybackDevice(originalSpeaker!!)
-            Logger.i("VBCableManager", "Restored original speaker: $originalSpeaker")
-        } else {
-            Logger.w("VBCableManager", "No original speaker saved to restore")
-        }
+        originalSpeaker?.let { speaker ->
+            setDefaultPlaybackDevice(speaker)
+            Logger.i("VBCableManager", "Restored original speaker: $speaker")
+        } ?: Logger.w("VBCableManager", "No original speaker saved to restore")
     }
 
     fun uninstall() {

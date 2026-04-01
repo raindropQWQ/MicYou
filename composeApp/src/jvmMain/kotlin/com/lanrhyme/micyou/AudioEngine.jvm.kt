@@ -227,7 +227,7 @@ actual class AudioEngine actual constructor() {
              _lastError.value = null
              _state.value = StreamState.Idle
          } catch (e: Exception) {
-             e.printStackTrace()
+             Logger.e("AudioEngine", "Error stopping audio engine: ${e.message}", e)
          } finally {
              audioOutputManager.release()
              audioPipeline.release()

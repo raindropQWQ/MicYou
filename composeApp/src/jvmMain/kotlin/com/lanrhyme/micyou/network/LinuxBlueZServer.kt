@@ -28,7 +28,7 @@ class LinuxBlueZServer(
     private val deviceFile: String get() = "/dev/rfcomm0"
 
     suspend fun start(port: Int = -1) {
-        if (serverJob != null && serverJob!!.isActive) {
+        serverJob?.takeIf { it.isActive }?.let {
             Logger.w("LinuxBlueZServer", "服务器已在运行")
             return
         }
@@ -173,9 +173,10 @@ class LinuxBlueZServer(
                     "rfcomm", "listen", deviceFile, channel.toString()
                 )
                 processBuilder.redirectErrorStream(true)
-                rfcommProcess = processBuilder.start()
+                val process = processBuilder.start()
+                rfcommProcess = process
 
-                val reader = BufferedReader(InputStreamReader(rfcommProcess!!.inputStream))
+                val reader = BufferedReader(InputStreamReader(process.inputStream))
 
                 var connectionEstablished = false
                 while (!connectionEstablished && currentCoroutineContext().isActive) {
@@ -195,7 +196,7 @@ class LinuxBlueZServer(
                     break
                 }
 
-                if (rfcommProcess!!.isAlive) {
+                if (process.isAlive) {
                     delay(500)
                     handleRfcommConnection()
                 }

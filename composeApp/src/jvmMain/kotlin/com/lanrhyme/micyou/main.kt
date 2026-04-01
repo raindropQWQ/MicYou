@@ -79,7 +79,7 @@ fun main() {
         
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
     } catch (e: Exception) {
-        e.printStackTrace()
+        Logger.w("Main", "Failed to set system look and feel: ${e.message}")
     }
 
     Logger.i("Main", "App started")

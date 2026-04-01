@@ -9,9 +9,9 @@ object AdbManager {
     private var adbPath: String? = null
     
     fun findAdb(): String? {
-        if (adbPath != null) {
-            if (File(adbPath!!).exists()) {
-                return adbPath
+        adbPath?.let { path ->
+            if (File(path).exists()) {
+                return path
             }
             adbPath = null
         }

@@ -825,12 +825,12 @@ private fun StatusControlPanel(
                     enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.9f),
                     exit = fadeOut(tween(150)) + scaleOut(targetScale = 0.9f)
                 ) {
-                    if (state.errorMessage != null) {
+                    state.errorMessage?.let { errorMsg ->
                         Spacer(modifier = Modifier.height(4.dp))
                         
-                        if (state.errorMessage!!.contains("adb reverse")) {
-                            val parts = state.errorMessage!!.split("\n")
-                            val errorTitle = parts.firstOrNull() ?: state.errorMessage!!
+                        if (errorMsg.contains("adb reverse")) {
+                            val parts = errorMsg.split("\n")
+                            val errorTitle = parts.firstOrNull() ?: errorMsg
                             val cmd = parts.drop(1).joinToString("\n").substringAfter("：").trim()
                             
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -864,7 +864,7 @@ private fun StatusControlPanel(
                             }
                         } else {
                             Text(
-                                state.errorMessage!!,
+                                errorMsg,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.error,
                                 maxLines = 3,

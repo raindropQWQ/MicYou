@@ -6,6 +6,7 @@ import com.lanrhyme.micyou.plugin.PluginInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -135,7 +136,7 @@ class MainViewModel : ViewModel() {
     private val settings = SettingsFactory.getSettings()
 
     init {
-        // Initialize Plugin ViewModel
+        // Initialize Plugin ViewModel with shared AudioEngine
         val initialLanguage = try { 
             AppLanguage.valueOf(settings.getString("language", AppLanguage.System.name)) 
         } catch(e: Exception) { 
@@ -143,7 +144,7 @@ class MainViewModel : ViewModel() {
         }
         
         pluginViewModel.initialize(
-            audioEngine = AudioEngine(), // Note: This should be shared with AudioStreamViewModel
+            audioEngine = audioStreamViewModel.audioEngine,
             showSnackbarCallback = { message ->
                 _uiState.update { it.copy(snackbarMessage = message) }
             },
@@ -188,98 +189,72 @@ class MainViewModel : ViewModel() {
     }
 
     private fun setupStateObservers() {
-        // Observe AudioStreamViewModel state
         viewModelScope.launch {
-            audioStreamViewModel.uiState.collect { audioState ->
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        mode = audioState.mode,
-                        streamState = audioState.streamState,
-                        ipAddress = audioState.ipAddress,
-                        port = audioState.port,
-                        errorMessage = audioState.errorMessage,
-                        monitoringEnabled = audioState.monitoringEnabled,
-                        sampleRate = audioState.sampleRate,
-                        channelCount = audioState.channelCount,
-                        audioFormat = audioState.audioFormat,
-                        isMuted = audioState.isMuted,
-                        bluetoothAddress = audioState.bluetoothAddress,
-                        isAutoConfig = audioState.isAutoConfig,
-                        showFirewallDialog = audioState.showFirewallDialog,
-                        pendingFirewallPort = audioState.pendingFirewallPort,
-                        enableNS = audioState.enableNS,
-                        nsType = audioState.nsType,
-                        enableAGC = audioState.enableAGC,
-                        agcTargetLevel = audioState.agcTargetLevel,
-                        enableVAD = audioState.enableVAD,
-                        vadThreshold = audioState.vadThreshold,
-                        enableDereverb = audioState.enableDereverb,
-                        dereverbLevel = audioState.dereverbLevel,
-                        amplification = audioState.amplification,
-                        androidAudioSourceName = audioState.androidAudioSourceName,
-                        audioConfigRevision = audioState.audioConfigRevision
-                    )
-                }
-            }
-        }
-        
-        // Observe SettingsViewModel state
-        viewModelScope.launch {
-            settingsViewModel.uiState.collect { settingsState ->
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        themeMode = settingsState.themeMode,
-                        seedColor = settingsState.seedColor,
-                        useDynamicColor = settingsState.useDynamicColor,
-                        oledPureBlack = settingsState.oledPureBlack,
-                        language = settingsState.language,
-                        autoStart = settingsState.autoStart,
-                        enableStreamingNotification = settingsState.enableStreamingNotification,
-                        keepScreenOn = settingsState.keepScreenOn,
-                        minimizeToTray = settingsState.minimizeToTray,
-                        closeAction = settingsState.closeAction,
-                        showCloseConfirmDialog = settingsState.showCloseConfirmDialog,
-                        rememberCloseAction = settingsState.rememberCloseAction,
-                        autoCheckUpdate = settingsState.autoCheckUpdate,
-                        useMirrorDownload = settingsState.useMirrorDownload,
-                        pocketMode = settingsState.pocketMode,
-                        visualizerStyle = settingsState.visualizerStyle,
-                        backgroundSettings = settingsState.backgroundSettings,
-                        floatingWindowEnabled = settingsState.floatingWindowEnabled,
-                        useSystemTitleBar = settingsState.useSystemTitleBar,
-                        showFirstLaunchDialog = settingsState.showFirstLaunchDialog,
-                        snackbarMessage = settingsState.snackbarMessage
-                    )
-                }
-            }
-        }
-        
-        // Observe PluginViewModel state
-        viewModelScope.launch {
-            pluginViewModel.uiState.collect { pluginState ->
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        plugins = pluginState.plugins,
-                        showPluginSyncWarning = pluginState.showPluginSyncWarning,
-                        missingPlugins = pluginState.missingPlugins
-                    )
-                }
-            }
-        }
-        
-        // Observe UpdateViewModel state
-        viewModelScope.launch {
-            updateViewModel.uiState.collect { updateState ->
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        newVersionAvailable = updateState.newVersionAvailable,
-                        updateDownloadState = updateState.updateDownloadState,
-                        updateDownloadProgress = updateState.updateDownloadProgress,
-                        updateDownloadedBytes = updateState.updateDownloadedBytes,
-                        updateTotalBytes = updateState.updateTotalBytes,
-                        updateErrorMessage = updateState.updateErrorMessage
-                    )
-                }
+            combine(
+                audioStreamViewModel.uiState,
+                settingsViewModel.uiState,
+                pluginViewModel.uiState,
+                updateViewModel.uiState
+            ) { audioState, settingsState, pluginState, updateState ->
+                AppUiState(
+                    mode = audioState.mode,
+                    streamState = audioState.streamState,
+                    ipAddress = audioState.ipAddress,
+                    port = audioState.port,
+                    errorMessage = audioState.errorMessage,
+                    monitoringEnabled = audioState.monitoringEnabled,
+                    sampleRate = audioState.sampleRate,
+                    channelCount = audioState.channelCount,
+                    audioFormat = audioState.audioFormat,
+                    isMuted = audioState.isMuted,
+                    bluetoothAddress = audioState.bluetoothAddress,
+                    isAutoConfig = audioState.isAutoConfig,
+                    showFirewallDialog = audioState.showFirewallDialog,
+                    pendingFirewallPort = audioState.pendingFirewallPort,
+                    enableNS = audioState.enableNS,
+                    nsType = audioState.nsType,
+                    enableAGC = audioState.enableAGC,
+                    agcTargetLevel = audioState.agcTargetLevel,
+                    enableVAD = audioState.enableVAD,
+                    vadThreshold = audioState.vadThreshold,
+                    enableDereverb = audioState.enableDereverb,
+                    dereverbLevel = audioState.dereverbLevel,
+                    amplification = audioState.amplification,
+                    androidAudioSourceName = audioState.androidAudioSourceName,
+                    audioConfigRevision = audioState.audioConfigRevision,
+                    themeMode = settingsState.themeMode,
+                    seedColor = settingsState.seedColor,
+                    useDynamicColor = settingsState.useDynamicColor,
+                    oledPureBlack = settingsState.oledPureBlack,
+                    language = settingsState.language,
+                    autoStart = settingsState.autoStart,
+                    enableStreamingNotification = settingsState.enableStreamingNotification,
+                    keepScreenOn = settingsState.keepScreenOn,
+                    minimizeToTray = settingsState.minimizeToTray,
+                    closeAction = settingsState.closeAction,
+                    showCloseConfirmDialog = settingsState.showCloseConfirmDialog,
+                    rememberCloseAction = settingsState.rememberCloseAction,
+                    autoCheckUpdate = settingsState.autoCheckUpdate,
+                    useMirrorDownload = settingsState.useMirrorDownload,
+                    pocketMode = settingsState.pocketMode,
+                    visualizerStyle = settingsState.visualizerStyle,
+                    backgroundSettings = settingsState.backgroundSettings,
+                    floatingWindowEnabled = settingsState.floatingWindowEnabled,
+                    useSystemTitleBar = settingsState.useSystemTitleBar,
+                    showFirstLaunchDialog = settingsState.showFirstLaunchDialog,
+                    plugins = pluginState.plugins,
+                    showPluginSyncWarning = pluginState.showPluginSyncWarning,
+                    missingPlugins = pluginState.missingPlugins,
+                    newVersionAvailable = updateState.newVersionAvailable,
+                    updateDownloadState = updateState.updateDownloadState,
+                    updateDownloadProgress = updateState.updateDownloadProgress,
+                    updateDownloadedBytes = updateState.updateDownloadedBytes,
+                    updateTotalBytes = updateState.updateTotalBytes,
+                    updateErrorMessage = updateState.updateErrorMessage,
+                    snackbarMessage = settingsState.snackbarMessage
+                )
+            }.collect { combinedState ->
+                _uiState.value = combinedState
             }
         }
     }
@@ -321,9 +296,7 @@ class MainViewModel : ViewModel() {
     fun setAutoStart(enabled: Boolean) = settingsViewModel.setAutoStart(enabled)
     fun setEnableStreamingNotification(enabled: Boolean) {
         settingsViewModel.setEnableStreamingNotification(enabled)
-        // Update audio engine with new notification setting
-        val audioEngine = AudioEngine() // Note: Should use shared instance
-        audioEngine.setStreamingNotificationEnabled(enabled)
+        audioStreamViewModel.audioEngine.setStreamingNotificationEnabled(enabled)
     }
     fun setKeepScreenOn(enabled: Boolean) = settingsViewModel.setKeepScreenOn(enabled)
     fun setMinimizeToTray(enabled: Boolean) = settingsViewModel.setMinimizeToTray(enabled)

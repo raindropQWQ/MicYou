@@ -171,16 +171,16 @@ fun PluginSettingsContent(
         }
     }
     
-    if (showDeleteDialog != null) {
+    showDeleteDialog?.let { plugin ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
             icon = { Icon(Icons.Default.Delete, contentDescription = null) },
             title = { Text(strings.deletePlugin) },
-            text = { Text(strings.deletePluginConfirm.format(showDeleteDialog!!.manifest.name)) },
+            text = { Text(strings.deletePluginConfirm.format(plugin.manifest.name)) },
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.deletePlugin(showDeleteDialog!!.manifest.id)
+                        viewModel.deletePlugin(plugin.manifest.id)
                         showDeleteDialog = null
                     },
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
@@ -198,15 +198,15 @@ fun PluginSettingsContent(
         )
     }
     
-    if (showPlatformWarning != null) {
+    showPlatformWarning?.let { plugin ->
         AlertDialog(
             onDismissRequest = { showPlatformWarning = null },
             icon = { Icon(Icons.Rounded.Warning, contentDescription = null) },
             title = { Text(strings.pluginPlatformWarningTitle) },
             text = { 
                 Text(strings.pluginPlatformWarning.format(
-                    showPlatformWarning!!.manifest.name,
-                    when (showPlatformWarning!!.manifest.platform) {
+                    plugin.manifest.name,
+                    when (plugin.manifest.platform) {
                         PluginPlatform.MOBILE -> "Mobile"
                         PluginPlatform.DESKTOP -> "Desktop"
                         PluginPlatform.BOTH -> "Both"

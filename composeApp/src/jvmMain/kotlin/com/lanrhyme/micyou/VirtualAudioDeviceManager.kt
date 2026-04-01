@@ -74,7 +74,7 @@ object VirtualAudioDeviceManager {
                 _installProgress.value = null
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logger.e("VirtualAudioDeviceManager", "Installation error: ${e.message}", e)
             _installProgress.value = strings.installError.replace("%s", e.message ?: "Unknown error")
             delay(2000)
             _installProgress.value = null
