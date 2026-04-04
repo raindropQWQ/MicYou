@@ -282,14 +282,19 @@ object VBCableManager {
         
         try {
             val licenseKey = getVBCableLicenseKey()
-            val args = mutableListOf(installerFile.absolutePath, "-i", "-h")
+            val installArgs = mutableListOf("-i", "-h")
             
             if (licenseKey != null) {
-                args.addAll(listOf("-s", "-k", licenseKey))
+                installArgs.addAll(listOf("-s", "-k", licenseKey))
                 Logger.i("VBCableManager", "Using license key for installation")
             }
             
-            val processBuilder = ProcessBuilder(args)
+            // Use PowerShell to run installer with elevated privileges (UAC)
+            val argsString = installArgs.joinToString("','")
+            val powerShellCommand = "Start-Process -FilePath '${installerFile.absolutePath}' -ArgumentList '$argsString' -Verb RunAs -Wait"
+            
+            Logger.i("VBCableManager", "Running installer with elevated privileges via PowerShell")
+            val processBuilder = ProcessBuilder("powershell", "-Command", powerShellCommand)
             processBuilder.redirectErrorStream(true)
             val process = processBuilder.start()
             
@@ -317,8 +322,9 @@ object VBCableManager {
             
             if (!installed && licenseKey != null) {
                 Logger.i("VBCableManager", "Retrying without license key...")
+                val retryPowerShellCommand = "Start-Process -FilePath '${installerFile.absolutePath}' -ArgumentList '-i','-h' -Verb RunAs -Wait"
                 val retryProcess = ProcessBuilder(
-                    installerFile.absolutePath, "-i", "-h"
+                    "powershell", "-Command", retryPowerShellCommand
                 ).redirectErrorStream(true).start()
                 
                 retryProcess.waitFor(60, TimeUnit.SECONDS)
@@ -362,7 +368,7 @@ object VBCableManager {
                             errorMsg.contains("admin", ignoreCase = true)
             
             if (needsAdmin) {
-                progressCallback(strings.vbcableNeedsAdmin)
+                progressCallback("Administrator privileges required")
             } else {
                 progressCallback(strings.installError.replace("%s", e.message ?: "Unknown error"))
             }

@@ -78,3 +78,24 @@ data class AudioSourceOption(val name: String, val label: String)
 
 expect fun getAudioSourceOptions(): List<AudioSourceOption>
 
+/**
+ * Check if virtual audio device (VB-Cable on Windows) is installed.
+ * Returns true if installed, false otherwise.
+ */
+expect fun isVirtualDeviceInstalled(): Boolean
+
+/**
+ * Install virtual audio device (VB-Cable on Windows).
+ */
+expect suspend fun installVBCable()
+
+/**
+ * Get installation progress flow. Emits status messages during installation.
+ */
+expect fun getVBCableInstallProgress(): kotlinx.coroutines.flow.Flow<String?>
+
+/**
+ * Check if running on Windows platform.
+ */
+expect fun isWindowsPlatform(): Boolean
+

@@ -57,3 +57,13 @@ actual fun getAudioSourceOptions(): List<AudioSourceOption> {
     return AndroidAudioSource.entries.map { AudioSourceOption(it.name, it.label) }
 }
 
+actual fun isVirtualDeviceInstalled(): Boolean = false
+
+actual suspend fun installVBCable() {
+    // No-op on Android
+}
+
+actual fun getVBCableInstallProgress(): kotlinx.coroutines.flow.Flow<String?> = kotlinx.coroutines.flow.flowOf(null)
+
+actual fun isWindowsPlatform(): Boolean = false
+

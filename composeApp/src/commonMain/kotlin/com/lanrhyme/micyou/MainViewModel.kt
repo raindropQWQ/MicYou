@@ -91,6 +91,8 @@ data class AppUiState(
     val floatingWindowEnabled: Boolean = false,
     val useSystemTitleBar: Boolean = false,
     val showFirstLaunchDialog: Boolean = false,
+    val showVBCableDialog: Boolean = false,
+    val vbcableInstallProgress: String? = null,
     
     // Plugin State
     val plugins: List<PluginInfo> = emptyList(),
@@ -185,6 +187,16 @@ class MainViewModel : ViewModel() {
         // Auto-check for updates
         if (settings.getBoolean("auto_check_update", true)) {
             updateViewModel.checkUpdateAuto()
+        }
+        
+        // Check VB-Cable on startup (Windows only)
+        checkVBCableOnStartup()
+        
+        // Observe VB-Cable installation progress
+        viewModelScope.launch {
+            getVBCableInstallProgress().collect { progress ->
+                _uiState.update { it.copy(vbcableInstallProgress = progress) }
+            }
         }
     }
 
@@ -323,6 +335,49 @@ class MainViewModel : ViewModel() {
     fun clearSnackbar() = settingsViewModel.clearSnackbar()
     fun dismissFirstLaunchDialog() = settingsViewModel.dismissFirstLaunchDialog()
     fun exportLog(onResult: (String?) -> Unit) = settingsViewModel.exportLog(onResult)
+    
+    fun setShowVBCableDialog(show: Boolean) {
+        _uiState.update { it.copy(showVBCableDialog = show) }
+    }
+    
+    fun checkVBCableOnStartup() {
+        viewModelScope.launch {
+            if (getPlatform().type == PlatformType.Desktop && isWindowsPlatform()) {
+                if (!isVirtualDeviceInstalled()) {
+                    val hasLaunched = settings.getBoolean("vbcable_dialog_shown", false)
+                    if (!hasLaunched) {
+                        settings.putBoolean("vbcable_dialog_shown", true)
+                        _uiState.update { it.copy(showVBCableDialog = true) }
+                    }
+                }
+            }
+        }
+    }
+    
+    fun startVBCableInstallation() {
+        viewModelScope.launch {
+            try {
+                installVBCable()
+            } catch (e: Exception) {
+                Logger.e("MainViewModel", "VB-Cable installation failed: ${e.message}", e)
+                showSnackbar("VB-Cable installation failed: ${e.message}")
+            } finally {
+                _uiState.update { it.copy(showVBCableDialog = false) }
+            }
+        }
+    }
+    
+    fun uninstallVBCableDevice() {
+        viewModelScope.launch {
+            try {
+                com.lanrhyme.micyou.uninstallVBCable()
+                showSnackbar("VB-Cable uninstalled successfully")
+            } catch (e: Exception) {
+                Logger.e("MainViewModel", "VB-Cable uninstall failed: ${e.message}", e)
+                showSnackbar("VB-Cable uninstall failed: ${e.message}")
+            }
+        }
+    }
     
     // Plugin methods
     fun importPlugin(filePath: String, onResult: (Result<PluginInfo>) -> Unit) = 

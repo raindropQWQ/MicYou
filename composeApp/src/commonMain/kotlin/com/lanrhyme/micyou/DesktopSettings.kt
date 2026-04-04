@@ -42,9 +42,11 @@ import androidx.compose.material.icons.automirrored.rounded.TextSnippet
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.InstallDesktop
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Palette
@@ -62,6 +64,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -533,9 +536,95 @@ private fun NavigationItem(
                         MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(50)
                     )
-            )
+        )
+    }
+}
+
+/**
+ * VB-Cable management section for General settings
+ */
+@Composable
+fun VBCableManagementSection(
+    cardOpacity: Float,
+    viewModel: MainViewModel
+) {
+    val strings = LocalAppStrings.current
+    val state by viewModel.uiState.collectAsState()
+    val isInstalled = isVirtualDeviceInstalled()
+    val installProgress = state.vbcableInstallProgress
+    val isInstalling = installProgress != null
+    
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = cardOpacity * 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "VB-Cable",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    if (isInstalled) strings.vbcableInstalled else strings.vbcableNotInstalled,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isInstalled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            if (isInstalling) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        installProgress!!,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.startVBCableInstallation() },
+                        enabled = !isInstalled,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            Icons.Rounded.InstallDesktop,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.vbcableInstall)
+                    }
+                    
+                    OutlinedButton(
+                        onClick = { viewModel.uninstallVBCableDevice() },
+                        enabled = isInstalled,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            Icons.Rounded.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(strings.vbcableUninstall)
+                    }
+                }
+            }
         }
     }
+}
 }
 
 /**
@@ -870,6 +959,13 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                         onCheckedChange = { viewModel.setUseMirrorDownload(it) },
                         cardOpacity = cardOpacity
                     )
+
+                    // VB-Cable management (Windows only)
+                    if (isWindowsPlatform()) {
+                        VBCableManagementSection(cardOpacity, viewModel)
+                    }
+
+
                 }
             }
             SettingsSection.Appearance -> {
@@ -1315,9 +1411,88 @@ fun SettingsContent(section: SettingsSection, viewModel: MainViewModel) {
                                                 selected = state.nsType == type,
                                                 onClick = { viewModel.setNsType(type) },
                                                 label = { Text(type.label) }
-                                            )
-                                        }
-                                    }
+        )
+    }
+}
+
+/**
+ * VB-Cable management section for Windows platform settings.
+ */
+@Composable
+fun VBCableManagementSection(
+    cardOpacity: Float,
+    viewModel: MainViewModel
+) {
+    val state by viewModel.uiState.collectAsState()
+    val strings = LocalAppStrings.current
+    val isInstalled = isVirtualDeviceInstalled()
+    
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = cardOpacity * 0.5f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "VB-Cable 虚拟音频设备",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Text(
+                    if (isInstalled) strings.vbcableInstalled else strings.vbcableNotInstalled,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (!isInstalled) {
+                        Button(
+                            onClick = { viewModel.startVBCableInstallation() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Rounded.InstallDesktop, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(strings.vbcableInstall)
+                        }
+                    } else {
+                        Button(
+                            onClick = { viewModel.uninstallVBCableDevice() },
+                            modifier = Modifier.weight(1f),
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(strings.vbcableUninstall)
+                        }
+                    }
+                }
+                
+                // Installation progress indicator
+                state.vbcableInstallProgress?.let { progress ->
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            progress,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
                                 }
                             }
                         }
@@ -1748,5 +1923,80 @@ private fun AlgorithmInfoItem(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun VBCableManagementSection(
+    cardOpacity: Float,
+    viewModel: MainViewModel
+) {
+    val state by viewModel.uiState.collectAsState()
+    val strings = LocalAppStrings.current
+    val isInstalled = isVirtualDeviceInstalled()
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = cardOpacity * 0.5f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "VB-Cable 虚拟音频设备",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Text(
+                    if (isInstalled) strings.vbcableInstalled else strings.vbcableNotInstalled,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (!isInstalled) {
+                        Button(
+                            onClick = { viewModel.startVBCableInstallation() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Rounded.InstallDesktop, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(strings.vbcableInstall)
+                        }
+                    } else {
+                        Button(
+                            onClick = { viewModel.uninstallVBCableDevice() },
+                            modifier = Modifier.weight(1f),
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(strings.vbcableUninstall)
+                        }
+                    }
+                }
+
+                state.vbcableInstallProgress?.let { progress ->
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            progress,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
     }
 }

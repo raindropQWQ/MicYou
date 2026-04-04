@@ -38,6 +38,8 @@ fun App(
     val pocketMode = uiState.pocketMode
     val useSystemTitleBar = uiState.useSystemTitleBar
     val showFirstLaunchDialog = uiState.showFirstLaunchDialog
+    val showVBCableDialog = uiState.showVBCableDialog
+    val vbcableInstallProgress = uiState.vbcableInstallProgress
 
     CompositionLocalProvider(LocalAppStrings provides strings) {
         AppTheme(
@@ -170,6 +172,60 @@ fun App(
                             Text(strings.firstLaunchGotItButton)
                         }
                     }
+                )
+            }
+
+            // VB-Cable Detection Dialog
+            if (showVBCableDialog) {
+                AlertDialog(
+                    onDismissRequest = { },
+                    title = { Text(strings.vbcableDetectTitle) },
+                    text = {
+                        Column {
+                            Text(strings.vbcableDetectMessage)
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            finalViewModel.setShowVBCableDialog(false)
+                            finalViewModel.startVBCableInstallation()
+                        }) {
+                            Text(strings.vbcableAutoInstall)
+                        }
+                    },
+                    dismissButton = {
+                        Row {
+                            TextButton(onClick = {
+                                openUrl("https://vb-audio.com/Cable/")
+                                finalViewModel.setShowVBCableDialog(false)
+                            }) {
+                                Text(strings.vbcableManualDownload)
+                            }
+                            TextButton(onClick = {
+                                finalViewModel.setShowVBCableDialog(false)
+                            }) {
+                                Text(strings.vbcableSkip)
+                            }
+                        }
+                    }
+                )
+            }
+
+            // VB-Cable Installation Progress Dialog
+            if (vbcableInstallProgress != null) {
+                AlertDialog(
+                    onDismissRequest = { },
+                    title = { Text(strings.installInstalling) },
+                    text = {
+                        Column {
+                            Text(vbcableInstallProgress)
+                            Spacer(Modifier.height(16.dp))
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = { }
                 )
             }
         }

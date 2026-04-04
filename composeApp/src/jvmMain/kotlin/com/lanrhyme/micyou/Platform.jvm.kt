@@ -132,3 +132,11 @@ actual fun getDynamicColorScheme(isDark: Boolean): ColorScheme? {
 }
 
 actual fun getAudioSourceOptions(): List<AudioSourceOption> = emptyList()
+
+actual fun isVirtualDeviceInstalled(): Boolean = VirtualAudioDeviceManager.isVirtualDeviceInstalled()
+
+actual suspend fun installVBCable() = VirtualAudioDeviceManager.installVirtualDevice()
+
+actual fun getVBCableInstallProgress(): kotlinx.coroutines.flow.Flow<String?> = VirtualAudioDeviceManager.installProgress
+
+actual fun isWindowsPlatform(): Boolean = PlatformInfo.isWindows

@@ -243,7 +243,21 @@ data class AppStrings(
     
     // System Title Bar
     val useSystemTitleBarLabel: String = "System Title Bar",
-    val useSystemTitleBarDesc: String = "Use native system window decorations instead of custom title bar"
+    val useSystemTitleBarDesc: String = "Use native system window decorations instead of custom title bar",
+
+    // VB-Cable Detection Dialog
+    val vbcableDetectTitle: String = "VB-Cable Driver Not Found",
+    val vbcableDetectMessage: String = "VB-Cable virtual audio driver is not installed. This driver is required for microphone audio forwarding.",
+    val vbcableAutoInstall: String = "Auto Install",
+    val vbcableManualDownload: String = "Manual Download",
+    val vbcableSkip: String = "Skip",
+    val vbcableInstalled: String = "Installed",
+    val vbcableNotInstalled: String = "Not Installed",
+    val vbcableInstall: String = "Install",
+    val vbcableUninstall: String = "Uninstall",
+    val vbcableInstalling: String = "Installing...",
+    val vbcableUninstalling: String = "Uninstalling...",
+    val vbcableSettingsLabel: String = "VB-Cable"
 )
 
 val LocalAppStrings = staticCompositionLocalOf { AppStrings() }
