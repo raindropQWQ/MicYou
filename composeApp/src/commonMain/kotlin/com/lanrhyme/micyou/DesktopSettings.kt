@@ -42,7 +42,6 @@ import androidx.compose.material.icons.automirrored.rounded.TextSnippet
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Info
@@ -590,36 +589,18 @@ fun VBCableManagementSection(
                     )
                 }
             } else {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Button(
+                    onClick = { viewModel.startVBCableInstallation() },
+                    enabled = !isInstalled,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Button(
-                        onClick = { viewModel.startVBCableInstallation() },
-                        enabled = !isInstalled,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            Icons.Rounded.InstallDesktop,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(strings.vbcableInstall)
-                    }
-                    
-                    OutlinedButton(
-                        onClick = { viewModel.uninstallVBCableDevice() },
-                        enabled = isInstalled,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            Icons.Rounded.Delete,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(strings.vbcableUninstall)
-                    }
+                    Icon(
+                        Icons.Rounded.InstallDesktop,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(if (isInstalled) strings.vbcableInstalled else strings.vbcableInstall)
                 }
             }
         }
@@ -1451,27 +1432,14 @@ fun VBCableManagementSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (!isInstalled) {
-                        Button(
-                            onClick = { viewModel.startVBCableInstallation() },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Rounded.InstallDesktop, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(strings.vbcableInstall)
-                        }
-                    } else {
-                        Button(
-                            onClick = { viewModel.uninstallVBCableDevice() },
-                            modifier = Modifier.weight(1f),
-                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(strings.vbcableUninstall)
-                        }
+                    Button(
+                        onClick = { viewModel.startVBCableInstallation() },
+                        enabled = !isInstalled,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Rounded.InstallDesktop, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (isInstalled) strings.vbcableInstalled else strings.vbcableInstall)
                     }
                 }
                 
@@ -1959,27 +1927,14 @@ private fun VBCableManagementSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (!isInstalled) {
-                        Button(
-                            onClick = { viewModel.startVBCableInstallation() },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Rounded.InstallDesktop, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(strings.vbcableInstall)
-                        }
-                    } else {
-                        Button(
-                            onClick = { viewModel.uninstallVBCableDevice() },
-                            modifier = Modifier.weight(1f),
-                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(strings.vbcableUninstall)
-                        }
+                    Button(
+                        onClick = { viewModel.startVBCableInstallation() },
+                        enabled = !isInstalled,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Rounded.InstallDesktop, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (isInstalled) strings.vbcableInstalled else strings.vbcableInstall)
                     }
                 }
 

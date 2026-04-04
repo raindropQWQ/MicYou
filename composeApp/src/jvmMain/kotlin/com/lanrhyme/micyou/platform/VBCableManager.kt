@@ -44,6 +44,8 @@ object VBCableManager {
     fun isInstalled(): Boolean {
         if (!PlatformInfo.isWindows) return false
         
+        if (initialized) return true
+        
         return try {
             val mixers = AudioSystem.getMixerInfo()
             mixers.any { 
@@ -454,9 +456,5 @@ object VBCableManager {
             setDefaultPlaybackDevice(speaker)
             Logger.i("VBCableManager", "Restored original speaker: $speaker")
         } ?: Logger.w("VBCableManager", "No original speaker saved to restore")
-    }
-
-    fun uninstall() {
-        Logger.w("VBCableManager", "Uninstall functionality not fully implemented. Please uninstall from Control Panel.")
     }
 }

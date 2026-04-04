@@ -152,19 +152,6 @@ object VirtualAudioDeviceManager {
             Logger.e("VirtualAudioDeviceManager", "macOS: Failed to set default microphone")
         }
     }
-
-    suspend fun uninstallVirtualDevice() = withContext(Dispatchers.IO) {
-        when (PlatformInfo.currentOS) {
-            PlatformInfo.OS.WINDOWS -> {
-                VBCableManager.uninstall()
-            }
-            else -> {
-                _installProgress.value = "Uninstall not supported on this platform"
-                delay(2000)
-                _installProgress.value = null
-            }
-        }
-    }
     
     private fun getCurrentLanguage(): AppLanguage {
         val settings = SettingsFactory.getSettings()

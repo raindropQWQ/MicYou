@@ -18,10 +18,6 @@ class AndroidPlatform : Platform {
 
 actual fun getPlatform(): Platform = AndroidPlatform()
 
-actual suspend fun uninstallVBCable() {
-    // No-op on Android
-}
-
 actual fun getAppVersion(): String = BuildConfig.VERSION_NAME
 
 actual fun openUrl(url: String) {

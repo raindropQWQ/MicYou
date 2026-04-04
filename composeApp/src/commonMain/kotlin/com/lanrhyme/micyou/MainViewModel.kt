@@ -367,18 +367,6 @@ class MainViewModel : ViewModel() {
         }
     }
     
-    fun uninstallVBCableDevice() {
-        viewModelScope.launch {
-            try {
-                com.lanrhyme.micyou.uninstallVBCable()
-                showSnackbar("VB-Cable uninstalled successfully")
-            } catch (e: Exception) {
-                Logger.e("MainViewModel", "VB-Cable uninstall failed: ${e.message}", e)
-                showSnackbar("VB-Cable uninstall failed: ${e.message}")
-            }
-        }
-    }
-    
     // Plugin methods
     fun importPlugin(filePath: String, onResult: (Result<PluginInfo>) -> Unit) = 
         pluginViewModel.importPlugin(filePath, onResult)

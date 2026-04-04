@@ -60,10 +60,6 @@ class JVMPlatform: Platform {
 
 actual fun getPlatform(): Platform = JVMPlatform()
 
-actual suspend fun uninstallVBCable() {
-    VirtualAudioDeviceManager.uninstallVirtualDevice()
-}
-
 actual fun getAppVersion(): String {
     val fromManifest = object {}.javaClass.`package`?.implementationVersion
     if (!fromManifest.isNullOrBlank()) return fromManifest

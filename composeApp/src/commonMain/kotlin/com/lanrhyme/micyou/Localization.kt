@@ -254,9 +254,7 @@ data class AppStrings(
     val vbcableInstalled: String = "Installed",
     val vbcableNotInstalled: String = "Not Installed",
     val vbcableInstall: String = "Install",
-    val vbcableUninstall: String = "Uninstall",
     val vbcableInstalling: String = "Installing...",
-    val vbcableUninstalling: String = "Uninstalling...",
     val vbcableSettingsLabel: String = "VB-Cable"
 )
 
