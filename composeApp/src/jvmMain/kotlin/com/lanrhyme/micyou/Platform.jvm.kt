@@ -73,10 +73,6 @@ actual fun getVBCableInstallProgress(): kotlinx.coroutines.flow.Flow<String?> {
     return VirtualAudioDeviceManager.installProgress
 }
 
-actual fun resetVBCableInstallState() {
-    VirtualAudioDeviceManager.resetInstallState()
-}
-
 actual fun getAppVersion(): String {
     val fromManifest = object {}.javaClass.`package`?.implementationVersion
     if (!fromManifest.isNullOrBlank()) return fromManifest

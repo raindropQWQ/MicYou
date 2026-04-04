@@ -25,13 +25,6 @@ object VirtualAudioDeviceManager {
         }
     }
 
-    fun resetInstallState() {
-        when (PlatformInfo.currentOS) {
-            PlatformInfo.OS.WINDOWS -> VBCableManager.resetInstallState()
-            else -> Logger.w("VirtualAudioDeviceManager", "Reset not supported on current platform")
-        }
-    }
-
     suspend fun installVirtualDevice() = withContext(Dispatchers.IO) {
         when (PlatformInfo.currentOS) {
             PlatformInfo.OS.WINDOWS -> {
