@@ -206,6 +206,7 @@
     "errorDialogDismiss": "關閉",
     "errorDialogRetry": "試多次",
     "errorDialogHelp": "睇說明",
+    "errorSuggestionsTitle": "建議：",
     "errorNetworkTimeoutTitle": "連線超時",
     "errorNetworkUnreachableTitle": "網路去唔到",
     "errorPortInUseTitle": "埠口俾人用咗",

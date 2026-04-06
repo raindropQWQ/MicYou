@@ -22,6 +22,7 @@ data class ErrorStrings(
     val errorDialogDismiss: String = "Dismiss",
     val errorDialogRetry: String = "Retry",
     val errorDialogHelp: String = "View Help",
+    val errorSuggestionsTitle: String = "Suggestions:",
     
     // Error Titles
     val errorNetworkTimeoutTitle: String = "Connection Timeout",

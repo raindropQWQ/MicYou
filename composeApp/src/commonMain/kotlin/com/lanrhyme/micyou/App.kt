@@ -283,7 +283,7 @@ private fun ConnectionErrorDialog(
                 if (errorDetails.recoverySuggestions.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Suggestions:",
+                        text = strings.errors.errorSuggestionsTitle,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold

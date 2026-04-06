@@ -200,6 +200,7 @@
     "errorDialogDismiss": "关闭",
     "errorDialogRetry": "重试",
     "errorDialogHelp": "查看帮助",
+    "errorSuggestionsTitle": "建议：",
     
     "errorNetworkTimeoutTitle": "连接超时",
     "errorNetworkUnreachableTitle": "网络不可达",

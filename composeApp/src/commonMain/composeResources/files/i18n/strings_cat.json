@@ -206,6 +206,7 @@
     "errorDialogDismiss": "关闭喵~",
     "errorDialogRetry": "重试喵~",
     "errorDialogHelp": "看帮助喵~",
+    "errorSuggestionsTitle": "建议喵~",
     "errorNetworkTimeoutTitle": "连接超时喵~",
     "errorNetworkUnreachableTitle": "网络不可达喵~",
     "errorPortInUseTitle": "端口被占用喵~",

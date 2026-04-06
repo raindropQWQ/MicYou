@@ -206,6 +206,7 @@
     "errorDialogDismiss": "关闭掉",
     "errorDialogRetry": "再去试一次",
     "errorDialogHelp": "去查看帮助文档",
+    "errorSuggestionsTitle": "建议项目：",
     "errorNetworkTimeoutTitle": "网络连线超时项目",
     "errorNetworkUnreachableTitle": "网络无法到达项目",
     "errorPortInUseTitle": "港口被占用项目",

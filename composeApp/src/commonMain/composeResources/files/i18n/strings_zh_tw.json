@@ -200,6 +200,7 @@
     "errorDialogDismiss": "關閉",
     "errorDialogRetry": "重試",
     "errorDialogHelp": "檢視說明",
+    "errorSuggestionsTitle": "建議：",
     "errorNetworkTimeoutTitle": "連線逾時",
     "errorNetworkUnreachableTitle": "網路無法連線",
     "errorPortInUseTitle": "連接埠已被占用",
