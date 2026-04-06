@@ -63,11 +63,37 @@ object VBCableManager {
         if (!PlatformInfo.isWindows) return false
         
         return try {
+            // First check: AudioSystem mixer detection
             val mixers = AudioSystem.getMixerInfo()
-            mixers.any { 
+            val mixerDetected = mixers.any { 
                 it.name.contains(CABLE_OUTPUT_NAME, ignoreCase = true) || 
                 it.name.contains(CABLE_INPUT_NAME, ignoreCase = true) 
             }
+            
+            if (!mixerDetected) return false
+            
+            // Second check: Registry verification to avoid false positives
+            // from cached/ghost devices after uninstallation
+            val registryPaths = listOf(
+                "HKLM\\SYSTEM\\CurrentControlSet\\Services\\VB-Cable",
+                "HKLM\\SOFTWARE\\VB-Audio\\Cable",
+                "HKLM\\SOFTWARE\\VB-Audio\\VB-Cable"
+            )
+            
+            val registryFound = registryPaths.any { regPath ->
+                try {
+                    val process = ProcessBuilder(
+                        "reg", "query", regPath
+                    ).redirectErrorStream(true).start()
+                    
+                    process.waitFor(3, TimeUnit.SECONDS)
+                    process.exitValue() == 0
+                } catch (e: Exception) {
+                    false
+                }
+            }
+            
+            registryFound
         } catch (e: Exception) {
             Logger.e("VBCableManager", "Failed to check VB-Cable installation", e)
             false

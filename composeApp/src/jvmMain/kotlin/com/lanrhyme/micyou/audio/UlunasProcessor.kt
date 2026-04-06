@@ -26,7 +26,7 @@ class UlunasProcessor(
     private val outputFrame: FloatArray = FloatArray(hopLength)
     
     private var outputBuffer: FloatArray = FloatArray((frameSize / 2 + 1) * 2)
-    private val stateBuffer: FloatArray = FloatArray(242)
+    private var stateBuffer: FloatArray = FloatArray(1464)
     
     private var env: OrtEnvironment? = null
     private var session: OrtSession? = null
@@ -243,7 +243,10 @@ class UlunasProcessor(
                                 val stateData = stateTensor.floatBuffer
                                 if (stateData != null) {
                                     val stateSize = stateData.remaining()
-                                    stateData.get(stateBuffer, 0, minOf(stateSize, stateBuffer.size))
+                                    if (stateSize > stateBuffer.size) {
+                                        stateBuffer = FloatArray(stateSize)
+                                    }
+                                    stateData.get(stateBuffer, 0, stateSize)
                                     if (i - 1 < states.size && stateSize == states[i - 1].size) {
                                         System.arraycopy(stateBuffer, 0, states[i - 1], 0, stateSize)
                                     }
