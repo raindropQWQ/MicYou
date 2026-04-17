@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.net.URLClassLoader
 import java.util.zip.ZipFile
 
 class PluginManager(
@@ -19,7 +20,7 @@ class PluginManager(
     val plugins: StateFlow<List<PluginInfo>> = _plugins.asStateFlow()
 
     private val loadedPlugins = mutableMapOf<String, Plugin>()
-    private val classLoaders = mutableMapOf<String, PluginClassLoader>()
+    private val classLoaders = mutableMapOf<String, URLClassLoader>()
     private val json = Json { ignoreUnknownKeys = true }
 
     init {
@@ -214,17 +215,7 @@ class PluginManager(
                 return Result.failure(Exception("plugin.jar not found"))
             }
 
-            // 注册安全管理器，使用插件 manifest 中定义的权限
-            val permissions = info.manifest.permissions.toSet()
-            val securityManager = PluginSecurityManager.register(pluginId, pluginDir, permissions)
-
-            // 使用带安全检查的 PluginClassLoader
-            val classLoader = PluginClassLoader(
-                arrayOf(jarFile.toURI().toURL()),
-                javaClass.classLoader,
-                pluginId,
-                securityManager
-            )
+            val classLoader = URLClassLoader(arrayOf(jarFile.toURI().toURL()), javaClass.classLoader)
             classLoaders[pluginId] = classLoader
 
             val pluginClass = classLoader.loadClass(info.manifest.mainClass)
@@ -268,9 +259,6 @@ class PluginManager(
             loadedPlugins.remove(pluginId)
             classLoaders[pluginId]?.close()
             classLoaders.remove(pluginId)
-
-            // 注销安全管理器
-            PluginSecurityManager.unregister(pluginId)
 
             setPluginEnabled(pluginId, false)
             scanPlugins()
