@@ -203,7 +203,61 @@ class AudioStreamViewModel : ViewModel() {
         Logger.i("AudioStreamViewModel", "Starting stream")
         val mode = _uiState.value.mode
         val ip = if (mode == ConnectionMode.Bluetooth) _uiState.value.bluetoothAddress else _uiState.value.ipAddress
-        val port = _uiState.value.port.toIntOrNull() ?: 6000
+
+        // 端口验证：确保端口在有效范围内 (1-65535)
+        val rawPort = _uiState.value.port.toIntOrNull()
+        val port = when {
+            rawPort == null -> {
+                Logger.w("AudioStreamViewModel", "Invalid port format: ${_uiState.value.port}, using default 6000")
+                6000
+            }
+            rawPort <= 0 || rawPort > 65535 -> {
+                Logger.w("AudioStreamViewModel", "Port out of range: $rawPort, using default 6000")
+                6000
+            }
+            else -> rawPort
+        }
+
+        // IP 地址验证（非蓝牙模式）
+        if (mode != ConnectionMode.Bluetooth) {
+            if (ip.isBlank()) {
+                Logger.e("AudioStreamViewModel", "IP address is empty")
+                _uiState.update {
+                    it.copy(
+                        streamState = StreamState.Error,
+                        errorMessage = "IP 地址不能为空",
+                        showErrorDialog = true
+                    )
+                }
+                return
+            }
+            // 基本的 IP 格式验证
+            val ipRegex = Regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
+            if (!ipRegex.matches(ip) && !ip.startsWith("127.")) {
+                Logger.w("AudioStreamViewModel", "IP address format may be invalid: $ip")
+            }
+        }
+
+        // 蓝牙地址验证（蓝牙模式）
+        if (mode == ConnectionMode.Bluetooth) {
+            if (ip.isBlank()) {
+                Logger.e("AudioStreamViewModel", "Bluetooth address is empty")
+                _uiState.update {
+                    it.copy(
+                        streamState = StreamState.Error,
+                        errorMessage = "请选择蓝牙设备",
+                        showErrorDialog = true
+                    )
+                }
+                return
+            }
+            // MAC 地址格式验证
+            val macRegex = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
+            if (!macRegex.matches(ip)) {
+                Logger.w("AudioStreamViewModel", "Bluetooth MAC address format may be invalid: $ip")
+            }
+        }
+
         val isClient = getPlatform().type == PlatformType.Android
         val sampleRate = _uiState.value.sampleRate
         val channelCount = _uiState.value.channelCount
@@ -304,9 +358,24 @@ class AudioStreamViewModel : ViewModel() {
     }
 
     fun setPort(port: String) {
-        Logger.d("AudioStreamViewModel", "Setting port to $port")
-        _uiState.update { it.copy(port = port) }
-        settings.putString("port", port)
+        // 验证端口输入
+        val portInt = port.toIntOrNull()
+        val validatedPort = when {
+            port.isBlank() -> "6000" // 空值使用默认端口
+            portInt == null -> {
+                Logger.w("AudioStreamViewModel", "Invalid port format: $port, keeping current value")
+                _uiState.value.port // 保持当前值
+            }
+            portInt <= 0 || portInt > 65535 -> {
+                Logger.w("AudioStreamViewModel", "Port out of valid range (1-65535): $portInt, keeping current value")
+                _uiState.value.port // 保持当前值
+            }
+            else -> port
+        }
+
+        Logger.d("AudioStreamViewModel", "Setting port to $validatedPort")
+        _uiState.update { it.copy(port = validatedPort) }
+        settings.putString("port", validatedPort)
     }
 
     fun setMonitoringEnabled(enabled: Boolean) {

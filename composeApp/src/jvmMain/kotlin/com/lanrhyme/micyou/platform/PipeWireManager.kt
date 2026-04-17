@@ -36,45 +36,68 @@ object PipeWireManager {
         return deviceExists()
     }
     
+    /**
+     * 等待设备创建完成，使用智能轮询而非固定等待
+     * @param maxWaitMs 最大等待时间（毫秒）
+     * @param checkIntervalMs 检查间隔（毫秒）
+     * @return 实际等待时间
+     */
+    private fun waitForDeviceReady(maxWaitMs: Long = 500, checkIntervalMs: Long = 50): Long {
+        var waited = 0L
+        // 等待 PipeWire 设备注册完成
+        while (waited < maxWaitMs) {
+            if (deviceExists()) {
+                return waited
+            }
+            Thread.sleep(checkIntervalMs)
+            waited += checkIntervalMs
+        }
+        return waited
+    }
+
     fun setup(): Boolean {
         if (!PlatformInfo.isLinux) {
             Logger.w("PipeWireManager", "PipeWire virtual audio device only supports Linux platform")
             return false
         }
-        
+
         if (!isAvailable()) {
             Logger.e("PipeWireManager", "PipeWire is not available")
             return false
         }
-        
+
         Logger.i("PipeWireManager", "Setting up PipeWire virtual audio device...")
-        
+
         return try {
             cleanup()
-            
+
             if (!createVirtualSink()) {
                 Logger.e("PipeWireManager", "Failed to create virtual Sink")
                 return false
             }
-            
-            Thread.sleep(500)
-            
+
+            // 使用智能等待替代固定 Thread.sleep
+            val waited1 = waitForDeviceReady(500)
+            Logger.d("PipeWireManager", "Waited ${waited1}ms for virtual sink to be ready")
+
             if (!createLoopback()) {
                 Logger.e("PipeWireManager", "Failed to create loopback")
                 cleanup()
                 return false
             }
-            
-            Thread.sleep(500)
-            
+
+            // 使用智能等待替代固定 Thread.sleep
+            val waited2 = waitForDeviceReady(500)
+            Logger.d("PipeWireManager", "Waited ${waited2}ms for loopback to be ready")
+
             if (!hideVirtualSink()) {
                 Logger.w("PipeWireManager", "Failed to hide virtual Sink (non-fatal)")
             }
-            
+
             if (!setDefaultSource()) {
                 Logger.w("PipeWireManager", "Failed to set default source (non-fatal)")
             }
-            
+
             isSetup = true
             Logger.i("PipeWireManager", "Virtual audio device setup complete")
             true
@@ -120,20 +143,27 @@ object PipeWireManager {
     
     private fun createLoopback(): Boolean {
         Logger.d("PipeWireManager", "Creating loopback: $SINK_NAME -> $SOURCE_NAME")
-        
+
         return try {
             val process = ProcessBuilder(
                 "pw-loopback",
                 "--capture-props={\"node.target\": \"$SINK_NAME\", \"media.class\": \"Stream/Input/Audio\", \"stream.capture.sink\": true}",
                 "--playback-props={\"node.description\": \"$SOURCE_NAME\", \"media.class\": \"Audio/Source\"}"
             ).redirectErrorStream(true).start()
-            
+
             loopbackProcess = process
-            
-            Thread.sleep(200)
-            
+
+            // 使用智能等待替代固定 Thread.sleep
+            val maxWaitMs = 1000
+            val checkIntervalMs = 50
+            var waited = 0L
+            while (waited < maxWaitMs && !process.isAlive && process.exitValue() != 0) {
+                Thread.sleep(checkIntervalMs)
+                waited += checkIntervalMs
+            }
+
             if (process.isAlive) {
-                Logger.i("PipeWireManager", "Loopback created successfully (pid: ${process.pid()})")
+                Logger.i("PipeWireManager", "Loopback created successfully (pid: ${process.pid()}, waited ${waited}ms)")
                 true
             } else {
                 val output = process.inputStream.bufferedReader().readText()

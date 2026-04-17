@@ -95,7 +95,7 @@ class AudioOutputManager {
     
     private fun initPulseAudio(audioFormat: AudioFormat): Boolean {
         val sinkName = PipeWireManager.virtualSinkName
-        
+
         try {
             val process = ProcessBuilder(
                 "pw-cat",
@@ -106,13 +106,21 @@ class AudioOutputManager {
                 "--format=s16",
                 "-"
             ).redirectErrorStream(false).start()
-            
-            Thread.sleep(200)
-            
+
+            // 使用智能等待替代固定 Thread.sleep
+            // 检查进程状态而非固定等待时间，更可靠且响应更快
+            val maxWaitMs = 1000
+            val checkIntervalMs = 50
+            var waited = 0
+            while (waited < maxWaitMs && !process.isAlive && process.exitValue() != 0) {
+                Thread.sleep(checkIntervalMs)
+                waited += checkIntervalMs
+            }
+
             if (process.isAlive) {
                 pwCatProcess = process
                 isUsingVirtualDevice = true
-                Logger.i("AudioOutputManager", "Using pw-cat to write to virtual sink: $sinkName")
+                Logger.i("AudioOutputManager", "Using pw-cat to write to virtual sink: $sinkName (waited ${waited}ms)")
                 return true
             } else {
                 val output = process.errorStream.bufferedReader().readText()
@@ -121,7 +129,7 @@ class AudioOutputManager {
         } catch (e: Exception) {
             Logger.w("AudioOutputManager", "pw-cat method failed: ${e.message}")
         }
-        
+
         return false
     }
     
@@ -305,12 +313,19 @@ class AudioOutputManager {
                 "--capture-props={\"node.target\": \"$sinkName\", \"media.class\": \"Stream/Input/Audio\", \"stream.capture.sink\": true}",
                 "--playback-props={\"media.class\": \"Stream/Output/Audio\"}"
             ).redirectErrorStream(true).start()
-            
-            Thread.sleep(200)
-            
+
+            // 使用智能等待替代固定 Thread.sleep
+            val maxWaitMs = 1000
+            val checkIntervalMs = 50
+            var waited = 0
+            while (waited < maxWaitMs && !process.isAlive && process.exitValue() != 0) {
+                Thread.sleep(checkIntervalMs)
+                waited += checkIntervalMs
+            }
+
             if (process.isAlive) {
                 monitorLoopbackProcess = process
-                Logger.i("AudioOutputManager", "Monitor loopback started (pid: ${process.pid()})")
+                Logger.i("AudioOutputManager", "Monitor loopback started (pid: ${process.pid()}, waited ${waited}ms)")
             } else {
                 val output = process.inputStream.bufferedReader().readText()
                 Logger.e("AudioOutputManager", "Monitor loopback failed to start: $output")

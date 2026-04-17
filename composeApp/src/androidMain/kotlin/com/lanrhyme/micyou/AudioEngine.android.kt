@@ -22,9 +22,7 @@ import io.ktor.utils.io.writeFully
 import io.ktor.utils.io.writeInt
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.BufferOverflow
@@ -40,18 +38,28 @@ import java.io.EOFException
 import java.io.OutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 
-@OptIn(DelicateCoroutinesApi::class)
-fun OutputStream.toByteWriteChannel(context: CoroutineContext = Dispatchers.IO): ByteWriteChannel = GlobalScope.reader(context, autoFlush = true) {
-    val buffer = ByteArray(4096)
-    while (!channel.isClosedForRead) {
-        val count = channel.readAvailable(buffer)
-        if (count == -1) break
-        this@toByteWriteChannel.write(buffer, 0, count)
-        this@toByteWriteChannel.flush()
-    }
-}.channel
+/**
+ * 将 OutputStream 转换为 ByteWriteChannel，使用当前协程的上下文。
+ *
+ * 此扩展函数应该仅在协程内部调用，以确保正确管理协程生命周期。
+ * 使用 coroutineContext 而非 GlobalScope，避免协程泄漏。
+ *
+ * @return ByteWriteChannel 用于写入数据
+ */
+suspend fun OutputStream.toByteWriteChannelSuspend(): ByteWriteChannel {
+    val scope = CoroutineScope(coroutineContext)
+    return scope.reader(Dispatchers.IO, autoFlush = true) {
+        val buffer = ByteArray(4096)
+        while (!channel.isClosedForRead) {
+            val count = channel.readAvailable(buffer)
+            if (count == -1) break
+            this@toByteWriteChannelSuspend.write(buffer, 0, count)
+            this@toByteWriteChannelSuspend.flush()
+        }
+    }.channel
+}
 
 actual class AudioEngine actual constructor() {
     init {
@@ -282,7 +290,7 @@ actual class AudioEngine actual constructor() {
                             Logger.i("AudioEngine", "Bluetooth connected to $ip")
 
                             input = btSocket.inputStream.toByteReadChannel()
-                            output = btSocket.outputStream.toByteWriteChannel()
+                            output = btSocket.outputStream.toByteWriteChannelSuspend()
                             closeConnection = { btSocket.close() }
                             
                         } else {
