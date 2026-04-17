@@ -46,17 +46,42 @@ import kotlin.coroutines.coroutineContext
  * 此扩展函数应该仅在协程内部调用，以确保正确管理协程生命周期。
  * 使用 coroutineContext 而非 GlobalScope，避免协程泄漏。
  *
+ * 包含异常处理和资源清理逻辑：
+ * - 捕获 I/O 异常并记录日志
+ * - 协程取消时正确关闭 OutputStream
+ * - 确保 CancellationException 正确传播
+ *
  * @return ByteWriteChannel 用于写入数据
  */
 suspend fun OutputStream.toByteWriteChannelSuspend(): ByteWriteChannel {
     val scope = CoroutineScope(coroutineContext)
+    val outputStream = this
     return scope.reader(Dispatchers.IO, autoFlush = true) {
         val buffer = ByteArray(4096)
-        while (!channel.isClosedForRead) {
-            val count = channel.readAvailable(buffer)
-            if (count == -1) break
-            this@toByteWriteChannelSuspend.write(buffer, 0, count)
-            this@toByteWriteChannelSuspend.flush()
+        try {
+            while (!channel.isClosedForRead) {
+                val count = channel.readAvailable(buffer)
+                if (count == -1) break
+                try {
+                    outputStream.write(buffer, 0, count)
+                    outputStream.flush()
+                } catch (e: java.io.IOException) {
+                    Logger.e("ByteWriteChannel", "I/O error writing to stream: ${e.message}", e)
+                    break
+                }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // 协程取消是正常行为，重新抛出以保持协程取消语义
+            throw e
+        } catch (e: Exception) {
+            Logger.e("ByteWriteChannel", "Unexpected error in write channel: ${e.message}", e)
+        } finally {
+            // 确保在协程结束时关闭 OutputStream
+            try {
+                outputStream.close()
+            } catch (e: Exception) {
+                Logger.w("ByteWriteChannel", "Error closing output stream: ${e.message}")
+            }
         }
     }.channel
 }

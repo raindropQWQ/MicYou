@@ -154,16 +154,35 @@ object PipeWireManager {
             loopbackProcess = process
 
             // 使用智能等待替代固定 Thread.sleep
+            // 修复：当进程未存活时，exitValue() 可能抛出异常，需单独处理
             val maxWaitMs = 1000
             val checkIntervalMs = 50
             var waited = 0L
-            while (waited < maxWaitMs && !process.isAlive && process.exitValue() != 0) {
-                Thread.sleep(checkIntervalMs)
-                waited += checkIntervalMs
+            while (waited < maxWaitMs) {
+                if (process.isAlive) {
+                    // 进程存活，等待并继续检查
+                    Thread.sleep(checkIntervalMs)
+                    waited += checkIntervalMs
+                } else {
+                    // 进程已终止，退出等待循环
+                    break
+                }
             }
 
-            if (process.isAlive) {
-                Logger.i("PipeWireManager", "Loopback created successfully (pid: ${process.pid()}, waited ${waited}ms)")
+            // 检查进程最终状态
+            val isProcessAlive = process.isAlive
+            val exitValue = if (!isProcessAlive) {
+                try {
+                    process.exitValue()
+                } catch (e: IllegalThreadStateException) {
+                    -1 // 无法获取退出值，视为失败
+                }
+            } else {
+                0 // 进程仍在运行，视为成功
+            }
+
+            if (isProcessAlive || exitValue == 0) {
+                Logger.i("PipeWireManager", "Loopback created successfully (pid: ${process.pid()}, waited ${waited}ms, exitValue=$exitValue)")
                 true
             } else {
                 val output = process.inputStream.bufferedReader().readText()

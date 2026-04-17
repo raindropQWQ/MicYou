@@ -109,18 +109,37 @@ class AudioOutputManager {
 
             // 使用智能等待替代固定 Thread.sleep
             // 检查进程状态而非固定等待时间，更可靠且响应更快
+            // 修复：当进程未存活时，exitValue() 可能抛出异常，需单独处理
             val maxWaitMs = 1000
             val checkIntervalMs = 50
             var waited = 0
-            while (waited < maxWaitMs && !process.isAlive && process.exitValue() != 0) {
-                Thread.sleep(checkIntervalMs)
-                waited += checkIntervalMs
+            while (waited < maxWaitMs) {
+                if (process.isAlive) {
+                    // 进程存活，等待并继续检查
+                    Thread.sleep(checkIntervalMs)
+                    waited += checkIntervalMs
+                } else {
+                    // 进程已终止，退出等待循环
+                    break
+                }
             }
 
-            if (process.isAlive) {
+            // 检查进程最终状态
+            val isProcessAlive = process.isAlive
+            val exitValue = if (!isProcessAlive) {
+                try {
+                    process.exitValue()
+                } catch (e: IllegalThreadStateException) {
+                    -1 // 无法获取退出值，视为失败
+                }
+            } else {
+                0 // 进程仍在运行，视为成功
+            }
+
+            if (isProcessAlive || exitValue == 0) {
                 pwCatProcess = process
                 isUsingVirtualDevice = true
-                Logger.i("AudioOutputManager", "Using pw-cat to write to virtual sink: $sinkName (waited ${waited}ms)")
+                Logger.i("AudioOutputManager", "Using pw-cat to write to virtual sink: $sinkName (waited ${waited}ms, exitValue=$exitValue)")
                 return true
             } else {
                 val output = process.errorStream.bufferedReader().readText()
@@ -315,17 +334,36 @@ class AudioOutputManager {
             ).redirectErrorStream(true).start()
 
             // 使用智能等待替代固定 Thread.sleep
+            // 修复：当进程未存活时，exitValue() 可能抛出异常，需单独处理
             val maxWaitMs = 1000
             val checkIntervalMs = 50
             var waited = 0
-            while (waited < maxWaitMs && !process.isAlive && process.exitValue() != 0) {
-                Thread.sleep(checkIntervalMs)
-                waited += checkIntervalMs
+            while (waited < maxWaitMs) {
+                if (process.isAlive) {
+                    // 进程存活，等待并继续检查
+                    Thread.sleep(checkIntervalMs)
+                    waited += checkIntervalMs
+                } else {
+                    // 进程已终止，退出等待循环
+                    break
+                }
             }
 
-            if (process.isAlive) {
+            // 检查进程最终状态
+            val isProcessAlive = process.isAlive
+            val exitValue = if (!isProcessAlive) {
+                try {
+                    process.exitValue()
+                } catch (e: IllegalThreadStateException) {
+                    -1 // 无法获取退出值，视为失败
+                }
+            } else {
+                0 // 进程仍在运行，视为成功
+            }
+
+            if (isProcessAlive || exitValue == 0) {
                 monitorLoopbackProcess = process
-                Logger.i("AudioOutputManager", "Monitor loopback started (pid: ${process.pid()}, waited ${waited}ms)")
+                Logger.i("AudioOutputManager", "Monitor loopback started (pid: ${process.pid()}, waited ${waited}ms, exitValue=$exitValue)")
             } else {
                 val output = process.inputStream.bufferedReader().readText()
                 Logger.e("AudioOutputManager", "Monitor loopback failed to start: $output")
