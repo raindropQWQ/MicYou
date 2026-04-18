@@ -235,12 +235,14 @@ actual class AudioEngine actual constructor() {
 
                             Logger.d("AudioEngine", "Initializing AudioRecord with source ${audioSource.name} (id=$sourceId)")
                             recorder = try {
+                                // 使用 minBufSize * 3 作为缓冲区，提供足够的缓冲避免音频丢包和杂音
+                                // 较大的缓冲区可以应对网络延迟和处理波动，减少音频断续
                                 AudioRecord(
                                     sourceId,
                                     androidSampleRate,
                                     androidChannelConfig,
                                     androidAudioFormat,
-                                    minBufSize * 2
+                                    minBufSize * 3
                                 )
                             } catch (e: Exception) {
                                 Logger.w("AudioEngine", "${audioSource.name} failed, falling back to MIC: ${e.message}")
@@ -249,7 +251,7 @@ actual class AudioEngine actual constructor() {
                                     androidSampleRate,
                                     androidChannelConfig,
                                     androidAudioFormat,
-                                    minBufSize * 2
+                                    minBufSize * 3
                                 )
                             }
                         } catch (e: SecurityException) {

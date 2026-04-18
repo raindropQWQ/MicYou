@@ -25,12 +25,12 @@ class AGCEffect : AudioEffect {
         // 增益范围限制
         /** 最小增益倍数，防止过度衰减 */
         private const val MIN_GAIN_LIMIT = 0.5f
-        /** 最大增益倍数，防止过度放大 */
-        private const val MAX_GAIN_LIMIT = 5.0f
+        /** 最大增益倍数，防止过度放大产生削波失真 */
+        private const val MAX_GAIN_LIMIT = 3.0f
         /** 最终输出的最小增益 */
         private const val MIN_OUTPUT_GAIN = 0.8f
-        /** 最终输出的最大增益 */
-        private const val MAX_OUTPUT_GAIN = 5.0f
+        /** 最终输出的最大增益，限制在安全范围内 */
+        private const val MAX_OUTPUT_GAIN = 3.0f
 
         // RMS 相关常量
         /** RMS 最小阈值，低于此值视为静音 */

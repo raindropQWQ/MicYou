@@ -55,6 +55,18 @@ class AudioProcessorPipeline {
         amplifierEffect.gainDb = amplification
     }
 
+    /**
+     * 音频处理管道
+     * 处理链顺序：降噪 -> 去混响 -> 放大 -> AGC -> VAD -> 重采样
+     *
+     * 顺序说明：
+     * 1. 降噪先处理原始信号中的噪声，避免后续放大把噪声也放大
+     * 2. 去混响在降噪后处理，避免混响和噪声叠加影响降噪效果
+     * 3. 放大在降噪后执行，只放大干净的声音信号
+     * 4. AGC 调整整体音量一致性
+     * 5. VAD 检测语音活动
+     * 6. 重采样调整播放速度
+     */
     fun process(
         inputBuffer: ByteArray,
         audioFormat: Int,
@@ -66,14 +78,20 @@ class AudioProcessorPipeline {
 
         var processed = shorts
 
-        processed = amplifierEffect.process(processed, channelCount)
+        // 1. 先降噪，处理原始信号中的噪声
         processed = noiseReducer.process(processed, channelCount)
+        // 2. 去混响
         processed = dereverbEffect.process(processed, channelCount)
+        // 3. 放大干净的声音信号（降噪后）
+        processed = amplifierEffect.process(processed, channelCount)
+        // 4. AGC 调整整体音量
         processed = agcEffect.process(processed, channelCount)
-        
+
+        // 5. VAD 检测语音活动
         vadEffect.speechProbability = noiseReducer.speechProbability
         processed = vadEffect.process(processed, channelCount)
-        
+
+        // 6. 重采样
         resamplerEffect.updatePlaybackRatio(queuedDurationMs)
         
         val maxOutputShorts = ((processed.size / playbackRatioLowerBound) + 16).toInt()
@@ -144,7 +162,9 @@ class AudioProcessorPipeline {
                                ((buffer[byteIndex + 3].toInt() and 0xFF) shl 24)
                     val sample = Float.fromBits(bits)
                     // Clamp and convert to 16-bit PCM
-                    shorts[i] = (sample * 32767.0f).toInt().coerceIn(-32768, 32767).toShort()
+                    // 使用 32768.0f 以保持对称范围 (-1.0 ~ 1.0 -> -32768 ~ 32767)
+                    // 避免因使用 32767 导致的正向信号略微衰减产生量化噪声
+                    shorts[i] = (sample * 32768.0f).toInt().coerceIn(-32768, 32767).toShort()
                 }
             }
             3, 8 -> { // PCM_8BIT (Unsigned 8-bit)

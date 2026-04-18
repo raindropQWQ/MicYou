@@ -211,7 +211,8 @@ class NoiseReducer(
                         }
                         val processedLeft = processorL.process(left)
                         for (i in 0 until hopLength) {
-                            input[base + i] = (processedLeft[i] * 32767.0f).toInt().coerceIn(-32768, 32767).toShort()
+                            // 使用 32768.0f 保持对称范围，避免量化误差
+                            input[base + i] = (processedLeft[i] * 32768.0f).toInt().coerceIn(-32768, 32767).toShort()
                         }
                     } else {
                         val rightArr = right ?: continue
@@ -225,8 +226,9 @@ class NoiseReducer(
                         val processedRight = processorRightInst.process(rightArr)
                         for (i in 0 until hopLength) {
                             val idx = base + i * 2
-                            input[idx] = (processedLeft[i] * 32767.0f).toInt().coerceIn(-32768, 32767).toShort()
-                            input[idx + 1] = (processedRight[i] * 32767.0f).toInt().coerceIn(-32768, 32767).toShort()
+                            // 使用 32768.0f 保持对称范围，避免量化误差
+                            input[idx] = (processedLeft[i] * 32768.0f).toInt().coerceIn(-32768, 32767).toShort()
+                            input[idx + 1] = (processedRight[i] * 32768.0f).toInt().coerceIn(-32768, 32767).toShort()
                         }
                     }
                 }
