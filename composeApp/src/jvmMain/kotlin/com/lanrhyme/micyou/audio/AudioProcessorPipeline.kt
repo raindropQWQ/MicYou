@@ -21,10 +21,6 @@ class AudioProcessorPipeline {
     private var scratchResultBuffer: ByteArray = ByteArray(INITIAL_BYTES_CAPACITY)
     private var scratchResultByteBuffer: ByteBuffer = ByteBuffer.wrap(scratchResultBuffer).order(ByteOrder.LITTLE_ENDIAN)
 
-    // 记录上次使用的缓冲区大小，避免重复检查
-    private var lastShortsSize: Int = 0
-    private var lastNeededBytes: Int = 0
-
     companion object {
         // 初始缓冲区容量 - 基于典型音频帧大小计算
         // 48000Hz, 16bit, 2ch, 100ms ≈ 19200 bytes, 9600 shorts
@@ -108,7 +104,6 @@ class AudioProcessorPipeline {
         val newSize = (neededBytes * GROWTH_FACTOR).toInt().coerceAtLeast(neededBytes)
         scratchResultBuffer = ByteArray(newSize)
         scratchResultByteBuffer = ByteBuffer.wrap(scratchResultBuffer).order(ByteOrder.LITTLE_ENDIAN)
-        lastNeededBytes = neededBytes
     }
 
     private fun convertToShorts(buffer: ByteArray, format: Int): ShortArray? {
