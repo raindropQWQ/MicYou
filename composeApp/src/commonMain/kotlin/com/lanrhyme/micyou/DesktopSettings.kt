@@ -1423,16 +1423,6 @@ fun VBCableManagementSection(
                         text = {
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 item {
-                                    Text(strings.basedOnAndroidMic, style = MaterialTheme.typography.bodyMedium)
-                                    Spacer(Modifier.height(8.dp))
-                                    HorizontalDivider()
-                                    Spacer(Modifier.height(8.dp))
-                                }
-                                item {
-                                    Text("AndroidMic", style = MaterialTheme.typography.titleSmall)
-                                    Text("MIT License", style = MaterialTheme.typography.bodySmall)
-                                }
-                                item {
                                     Text("JetBrains Compose Multiplatform", style = MaterialTheme.typography.titleSmall)
                                     Text("Apache License 2.0", style = MaterialTheme.typography.bodySmall)
                                 }
@@ -1445,7 +1435,35 @@ fun VBCableManagementSection(
                                     Text("Apache License 2.0", style = MaterialTheme.typography.bodySmall)
                                 }
                                 item {
-                                    Text("Material Components", style = MaterialTheme.typography.titleSmall)
+                                    Text("Material 3 Components", style = MaterialTheme.typography.titleSmall)
+                                    Text("Apache License 2.0", style = MaterialTheme.typography.bodySmall)
+                                }
+                                item {
+                                    Text("MaterialKolor", style = MaterialTheme.typography.titleSmall)
+                                    Text("MIT License", style = MaterialTheme.typography.bodySmall)
+                                }
+                                item {
+                                    Text("ONNX Runtime", style = MaterialTheme.typography.titleSmall)
+                                    Text("MIT License", style = MaterialTheme.typography.bodySmall)
+                                }
+                                item {
+                                    Text("JTransforms", style = MaterialTheme.typography.titleSmall)
+                                    Text("BSD 3-Clause License", style = MaterialTheme.typography.bodySmall)
+                                }
+                                item {
+                                    Text("composeNativeTray", style = MaterialTheme.typography.titleSmall)
+                                    Text("MIT License", style = MaterialTheme.typography.bodySmall)
+                                }
+                                item {
+                                    Text("FileKit", style = MaterialTheme.typography.titleSmall)
+                                    Text("MIT License", style = MaterialTheme.typography.bodySmall)
+                                }
+                                item {
+                                    Text("kotlinx-datetime", style = MaterialTheme.typography.titleSmall)
+                                    Text("Apache License 2.0", style = MaterialTheme.typography.bodySmall)
+                                }
+                                item {
+                                    Text("kotlinx-serialization", style = MaterialTheme.typography.titleSmall)
                                     Text("Apache License 2.0", style = MaterialTheme.typography.bodySmall)
                                 }
                             }
