@@ -17,7 +17,7 @@
   <a href="https://crowdin.com/project/micyou" target="_blank" rel="noopener noreferrer">
     <img alt="Crowdin" src="https://badges.crowdin.net/micyou/localized.svg"></a>
   <a href="https://qm.qq.com/q/V16hPpWPKO">
-    <img alt="QQ" src="https://img.shields.io/badge/QQ%E7%BE%A4-995452107-12B7F5?style=flat&logo=qq&logoColor=white"><a>
+    <img alt="QQ" src="https://img.shields.io/badge/QQ-995452107-12B7F5?style=flat&logo=qq&logoColor=white"><a>
   <a href="https://t.me/MicYouChannel">
     <img alt="TG" src="https://img.shields.io/badge/Telegram-@MicYouChannel-2CA5E0?style=flat&logo=telegram&logoColor=white"></a>
 
