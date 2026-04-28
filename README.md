@@ -4,14 +4,11 @@
   
   <img src="./img/app_icon.png" width="128" height="128" />
 
+  <a href="https://hellogithub.com/repository/LanRhyme/MicYou" target="_blank">
+    <img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=14f1a7bc70dc4b3daa2b4668200286e3&claim_uid=amtBSAcKnxJLEiN&theme=neutral" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
   <a href="./README_zh-cn.md">简体中文</a> | <a href="./README_zh-tw.md">繁體中文</a> | <b>English</b>
 
-  <a href="https://github.com/LanRhyme/MicYou/blob/master/LICENSE">
-    <img alt="LICENSE" src="https://img.shields.io/badge/license-GPLv3-green"></a>
-  <a href="https://github.com/LanRhyme/MicYou/stargazers">
-    <img alt="Github Stars" src="https://img.shields.io/github/stars/LanRhyme/MicYou?style=flat&logo=github&logoColor=white"><a>
-  <a href="https://github.com/LanRhyme/MicYou/releases/latest">
-    <img alt="GitHub Release" src="https://img.shields.io/github/v/release/LanRhyme/MicYou?logo=github"></a>
   <a href="https://aur.archlinux.org/packages/micyou-bin">
     <img alt="AUR Version" src="https://img.shields.io/aur/version/micyou-bin?logo=archlinux&label=micyou-bin"></a>
   <a href="https://qm.qq.com/q/V16hPpWPKO">
@@ -23,9 +20,6 @@
 
   <a href="https://afdian.com/a/LanRhyme" target="_blank" rel="noopener noreferrer">
     <img src="https://img.shields.io/badge/afdian-@LanRhyme-946ce6?style=for-the-badge&logo=afdian&logoColor=white" alt="afdian"></a>
-
-  <a href="https://hellogithub.com/repository/LanRhyme/MicYou" target="_blank">
-    <img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=14f1a7bc70dc4b3daa2b4668200286e3&claim_uid=amtBSAcKnxJLEiN&theme=neutral" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 
   MicYou is a powerful tool that turns your Android device into a high-quality microphone for your PC. Built with Kotlin Multiplatform and Jetpack Compose/Material 3.
 
