@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import com.lanrhyme.micyou.theme.PaletteStyle
 import com.lanrhyme.micyou.theme.dynamicColorScheme
-
 class AndroidPlatform : Platform {
     override val name: String = "Android ${Build.VERSION.SDK_INT}"
     override val type: PlatformType = PlatformType.Android
@@ -75,7 +74,7 @@ actual fun getDynamicSeedColor(): Long? {
 }
 
 actual fun getAudioSourceOptions(): List<AudioSourceOption> {
-    return AndroidAudioSource.entries.map { AudioSourceOption(it.name, it.label) }
+    return AndroidAudioSource.entries.map { AudioSourceOption(it.name, it.labelRes) }
 }
 
 actual fun isVirtualDeviceInstalled(): Boolean = false

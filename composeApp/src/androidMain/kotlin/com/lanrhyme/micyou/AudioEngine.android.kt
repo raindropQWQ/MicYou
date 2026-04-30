@@ -43,6 +43,16 @@ import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.coroutines.coroutineContext
+import micyou.composeapp.generated.resources.Res
+import micyou.composeapp.generated.resources.connectionDisconnected
+import micyou.composeapp.generated.resources.connectionRejected
+import micyou.composeapp.generated.resources.connectionTimeout
+import micyou.composeapp.generated.resources.connectionUnreachable
+import micyou.composeapp.generated.resources.errorAudioFormatNotSupported
+import micyou.composeapp.generated.resources.errorAudioRecordInitFailed
+import micyou.composeapp.generated.resources.errorHandshakeFailedDetailed
+import micyou.composeapp.generated.resources.errorRecordingPermissionDenied
+import org.jetbrains.compose.resources.getString
 
 /**
  * 将 OutputStream 转换为 ByteWriteChannel，使用当前协程的上下文。
@@ -190,8 +200,7 @@ actual class AudioEngine actual constructor() {
 
         // Create CompletableDeferred to track connection status
         connectionComplete = CompletableDeferred()
-        
-        val jobToJoin = startStopMutex.withLock {
+    val jobToJoin = startStopMutex.withLock {
             val currentJob = job
             if (currentJob != null && !currentJob.isCompleted) {
                 Logger.w("AudioEngine", "AudioEngine already running, ignoring start request")
@@ -224,12 +233,11 @@ actual class AudioEngine actual constructor() {
                             com.lanrhyme.micyou.AudioFormat.PCM_FLOAT -> AudioFormat.ENCODING_PCM_FLOAT
                             else -> AudioFormat.ENCODING_PCM_16BIT // Default fallback
                         }
-                        
-                        val minBufSize = AudioRecord.getMinBufferSize(androidSampleRate, androidChannelConfig, androidAudioFormat)
+    val minBufSize = AudioRecord.getMinBufferSize(androidSampleRate, androidChannelConfig, androidAudioFormat)
 
                         // 检查 minBufSize 是否有效，某些设备可能不支持 PCM_FLOAT
                         if (minBufSize <= 0 || minBufSize == AudioRecord.ERROR || minBufSize == AudioRecord.ERROR_BAD_VALUE) {
-                            val msg = "音频格式不支持: 设备不支持 ${audioFormat.label} (${androidAudioFormat}) 格式或当前采样率 ${androidSampleRate}Hz"
+                            val msg = getString(Res.string.errorAudioFormatNotSupported, audioFormat.label, androidAudioFormat.toString(), androidSampleRate)
                             Logger.e("AudioEngine", msg + ", minBufSize=$minBufSize")
                             _state.value = StreamState.Error
                             _lastError.value = msg
@@ -264,12 +272,12 @@ actual class AudioEngine actual constructor() {
                         } catch (e: SecurityException) {
                             Logger.e("AudioEngine", "Record permission denied", e)
                             _state.value = StreamState.Error
-                            _lastError.value = "录音权限不足"
+                            _lastError.value = getString(Res.string.errorRecordingPermissionDenied)
                             return@launch
                         }
                         
                         if (recorder.state != AudioRecord.STATE_INITIALIZED) {
-                            val msg = "AudioRecord 初始化失败"
+                            val msg = getString(Res.string.errorAudioRecordInitFailed)
                             Logger.e("AudioEngine", msg)
                             _state.value = StreamState.Error
                             _lastError.value = msg
@@ -299,7 +307,7 @@ actual class AudioEngine actual constructor() {
                         
                         // 网络设置
                         val selectorManager = SelectorManager(Dispatchers.IO)
-                        var tcpSocket: Socket? = null
+    var tcpSocket: Socket? = null
                         
                         if (mode == ConnectionMode.Bluetooth) {
                             Logger.i("AudioEngine", "Connecting via Bluetooth to $ip")
@@ -315,19 +323,16 @@ actual class AudioEngine actual constructor() {
                                     throw SecurityException("缺少蓝牙连接权限 (BLUETOOTH_CONNECT)，请在应用设置中授予蓝牙权限")
                                 }
                             }
-
-                            val adapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()
+    val adapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()
                                 ?: throw UnsupportedOperationException("设备不支持蓝牙")
 
                             if (!android.bluetooth.BluetoothAdapter.checkBluetoothAddress(ip)) {
                                 throw IllegalArgumentException("无效的蓝牙 MAC 地址: $ip")
                             }
-
-                            val device = adapter.getRemoteDevice(ip)
+    val device = adapter.getRemoteDevice(ip)
                             // SPP UUID
                             val uuid = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-
-                            val btSocket = device.createRfcommSocketToServiceRecord(uuid)
+    val btSocket = device.createRfcommSocketToServiceRecord(uuid)
                             btSocket.connect()
                             Logger.i("AudioEngine", "Bluetooth connected to $ip")
 
@@ -338,7 +343,7 @@ actual class AudioEngine actual constructor() {
                         } else {
                             val targetIp = if (mode == ConnectionMode.Usb) "127.0.0.1" else ip
                             Logger.i("AudioEngine", "Connecting via TCP to $targetIp:$port")
-                            val socketBuilder = aSocket(selectorManager)
+    val socketBuilder = aSocket(selectorManager)
                             tcpSocket = socketBuilder.tcp().connect(targetIp, port) {
                                 // 优化 Socket 参数以应对 Wi-Fi 环境下的连接不稳
                                 keepAlive = true
@@ -372,12 +377,11 @@ actual class AudioEngine actual constructor() {
                         Logger.d("AudioEngine", "Starting handshake")
                         output.writeFully(CHECK_1.encodeToByteArray())
                         output.flush()
-
-                        val responseBuffer = ByteArray(CHECK_2.length)
+    val responseBuffer = ByteArray(CHECK_2.length)
                         input.readFully(responseBuffer, 0, responseBuffer.size)
 
                         if (!responseBuffer.decodeToString().equals(CHECK_2)) {
-                            val msg = "握手失败"
+                            val msg = getString(Res.string.errorHandshakeFailedDetailed)
                             Logger.e("AudioEngine", msg)
                             _state.value = StreamState.Error
                             _lastError.value = msg
@@ -415,7 +419,7 @@ actual class AudioEngine actual constructor() {
                                     // 仅通过 TCP 发送控制消息（静音/连接/插件同步）
                                     if (msg.hasControlMessage()) {
                                         val packetBytes = proto.encodeToByteArray(MessageWrapper.serializer(), msg)
-                                        val length = packetBytes.size
+    val length = packetBytes.size
                                         output.writeInt(PACKET_MAGIC)
                                         output.writeInt(length)
                                         output.writeFully(packetBytes)
@@ -448,8 +452,7 @@ actual class AudioEngine actual constructor() {
                                         Logger.w("AudioEngine", "Invalid Magic: ${magic.toString(16)}")
                                         throw java.io.IOException("Invalid Packet Magic")
                                     }
-                                    
-                                    val length = input.readInt()
+    val length = input.readInt()
 
                                     if (length > 0) {
                                         val packetBytes = ByteArray(length)
@@ -475,9 +478,8 @@ actual class AudioEngine actual constructor() {
                         
                         // 发送初始静音状态
                         sendChannel?.send(MessageWrapper(mute = MuteMessage(_isMuted.value)))
-
-                        val buffer = ByteArray(minBufSize)
-                        val floatBuffer = if (androidAudioFormat == AudioFormat.ENCODING_PCM_FLOAT) FloatArray(minBufSize / 4) else null
+    val buffer = ByteArray(minBufSize)
+    val floatBuffer = if (androidAudioFormat == AudioFormat.ENCODING_PCM_FLOAT) FloatArray(minBufSize / 4) else null
                         
                         var sequenceNumber = 0
 
@@ -517,8 +519,7 @@ actual class AudioEngine actual constructor() {
                                         channelCount = if (channelCount == ChannelCount.Stereo) 2 else 1,
                                         audioFormat = audioFormat.value
                                     )
-                                    
-                                    val wrapper = MessageWrapper(
+    val wrapper = MessageWrapper(
                                         audioPacket = AudioPacketMessageOrdered(sequenceNumber++, packet)
                                     )
                                     
@@ -540,13 +541,13 @@ actual class AudioEngine actual constructor() {
                             _state.value = StreamState.Error
                             
                             val errorMsg = when {
-                                e is java.net.ConnectException && e.message?.contains("Connection refused", ignoreCase = true) == true -> 
-                                    "连接被拒绝: 请确保电脑端已开启并处于连接中状态，且防火墙已放行 TCP $port 端口。"
-                                e is java.net.SocketTimeoutException -> 
-                                    "连接超时: 请检查网络连接或 IP 地址是否正确。"
+                                e is java.net.ConnectException && e.message?.contains("Connection refused", ignoreCase = true) == true ->
+                                    getString(Res.string.connectionRejected, port)
+                                e is java.net.SocketTimeoutException ->
+                                    getString(Res.string.connectionTimeout)
                                 e is java.net.NoRouteToHostException ->
-                                    "无法到达主机: 请确保手机和电脑在同一个 Wi-Fi 网络下。"
-                                else -> "连接断开: ${e.message}"
+                                    getString(Res.string.connectionUnreachable)
+                                else -> getString(Res.string.connectionDisconnected)
                             }
                             _lastError.value = errorMsg
                             
@@ -601,7 +602,7 @@ actual class AudioEngine actual constructor() {
     private fun sendAudioPacketViaUdp(wrapper: MessageWrapper) {
         try {
             val packetBytes = proto.encodeToByteArray(MessageWrapper.serializer(), wrapper)
-            val length = packetBytes.size
+    val length = packetBytes.size
             // Magic (4B) + Length (4B) + Payload
             val header = ByteArray(8).apply {
                 this[0] = (UDP_PACKET_MAGIC shr 24).toByte()
@@ -613,7 +614,7 @@ actual class AudioEngine actual constructor() {
                 this[6] = (length shr 8).toByte()
                 this[7] = length.toByte()
             }
-            val udpPacket = DatagramPacket(header + packetBytes, 8 + length, udpServerAddress)
+    val udpPacket = DatagramPacket(header + packetBytes, 8 + length, udpServerAddress)
             udpSocket?.send(udpPacket)
         } catch (e: Exception) {
             Logger.w("AudioEngine", "UDP 发送失败: ${e.message}")
@@ -628,8 +629,7 @@ actual class AudioEngine actual constructor() {
 
         // 清理 active 引用（如果当前实例是 activeEngine）
         clearActiveEngine()
-
-        val context = ContextHelper.getContext()
+    val context = ContextHelper.getContext()
         if (context != null) {
             val intent = Intent(context, AudioService::class.java).apply {
                 action = AudioService.ACTION_STOP
@@ -778,7 +778,7 @@ actual class AudioEngine actual constructor() {
                                ((buffer[byteIndex + 1].toInt() and 0xFF) shl 8) or
                                ((buffer[byteIndex + 2].toInt() and 0xFF) shl 16) or
                                ((buffer[byteIndex + 3].toInt() and 0xFF) shl 24)
-                    val sample = Float.fromBits(bits)
+    val sample = Float.fromBits(bits)
                     sum += sample * sample
                     maxSample = maxOf(maxSample, kotlin.math.abs(sample.toDouble()))
                 }
@@ -798,7 +798,7 @@ actual class AudioEngine actual constructor() {
                     val byteIndex = i * 2
                     val sample = (buffer[byteIndex].toInt() and 0xFF) or
                                  ((buffer[byteIndex + 1].toInt()) shl 8)
-                    val normalized = sample / 32768.0
+    val normalized = sample / 32768.0
                     sum += normalized * normalized
                     maxSample = maxOf(maxSample, kotlin.math.abs(normalized))
                 }
@@ -808,7 +808,7 @@ actual class AudioEngine actual constructor() {
         if (sampleCount == 0) return AudioLevelData.SILENT
 
         val rms = Math.sqrt(sum / sampleCount).toFloat().coerceIn(0f, 1f)
-        val peak = maxSample.toFloat().coerceIn(0f, 1f)
+    val peak = maxSample.toFloat().coerceIn(0f, 1f)
 
         return AudioLevelData.fromRmsAndPeak(rms, peak)
     }

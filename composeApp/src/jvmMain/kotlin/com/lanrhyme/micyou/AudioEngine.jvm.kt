@@ -2,6 +2,9 @@ package com.lanrhyme.micyou
 
 import com.lanrhyme.micyou.audio.AudioOutputManager
 import com.lanrhyme.micyou.audio.AudioProcessorPipeline
+import micyou.composeapp.generated.resources.Res
+import micyou.composeapp.generated.resources.errorAdbReverseFailed
+import org.jetbrains.compose.resources.getString
 import com.lanrhyme.micyou.network.NetworkServer
 import com.lanrhyme.micyou.platform.AdbManager
 import com.lanrhyme.micyou.platform.PlatformInfo
@@ -97,8 +100,7 @@ actual class AudioEngine actual constructor() {
                         Logger.e("AudioEngine", "初始化音频输出失败")
                         continue
                     }
-
-                    val queuedMs = audioOutputManager.getQueuedDurationMs()
+    val queuedMs = audioOutputManager.getQueuedDurationMs()
 
                     // 保存当前音频参数用于计算比特率
                     currentSampleRate = audioPacket.sampleRate
@@ -114,8 +116,7 @@ actual class AudioEngine actual constructor() {
 
                     if (processedBuffer != null) {
                         audioOutputManager.write(processedBuffer, 0, processedBuffer.size)
-
-                        val levelData = calculateAudioLevelData(processedBuffer)
+    val levelData = calculateAudioLevelData(processedBuffer)
                         _audioLevels.value = levelData.rms
                         _audioLevelData.value = levelData
 
@@ -186,7 +187,7 @@ actual class AudioEngine actual constructor() {
             if (AdbManager.runAdbReverse(port)) {
                 Logger.i("AudioEngine", "ADB reverse 成功，USB 隧道已建立")
             } else {
-                val errorMsg = "ADB reverse 失败。请确保已安装 ADB 且 Android 设备已连接。\n或者手动运行: adb reverse tcp:$port tcp:$port"
+                val errorMsg = getString(Res.string.errorAdbReverseFailed, port)
                 Logger.e("AudioEngine", errorMsg)
                 _lastError.value = errorMsg
                 _state.value = StreamState.Error
@@ -284,7 +285,7 @@ actual class AudioEngine actual constructor() {
         while (i + 1 < buffer.size) {
             val lo = buffer[i].toInt() and 0xFF
             val hi = buffer[i + 1].toInt()
-            val sample = (hi shl 8) or lo
+    val sample = (hi shl 8) or lo
             val normalized = sample / 32768.0
 
             sum += normalized * normalized
@@ -296,7 +297,7 @@ actual class AudioEngine actual constructor() {
         if (count == 0) return AudioLevelData.SILENT
 
         val rms = sqrt(sum / count).toFloat().coerceIn(0f, 1f)
-        val peak = maxSample.toFloat().coerceIn(0f, 1f)
+    val peak = maxSample.toFloat().coerceIn(0f, 1f)
 
         return AudioLevelData.fromRmsAndPeak(rms, peak)
     }
@@ -313,8 +314,7 @@ actual class AudioEngine actual constructor() {
             3, 8 -> 8    // PCM_8BIT
             else -> 16   // PCM_16BIT
         }
-
-        val bitrate = AudioMetrics.calculateBitrate(currentSampleRate, currentChannelCount, bitsPerSample)
+    val bitrate = AudioMetrics.calculateBitrate(currentSampleRate, currentChannelCount, bitsPerSample)
         _audioMetrics.value = AudioMetrics(
             bitrate = bitrate,
             latencyMs = latencyMs

@@ -2,6 +2,15 @@ package com.lanrhyme.micyou.network
 
 import com.lanrhyme.micyou.*
 import io.ktor.utils.io.*
+import micyou.composeapp.generated.resources.Res
+import micyou.composeapp.generated.resources.connectionChannelClosed
+import micyou.composeapp.generated.resources.connectionDisconnected
+import micyou.composeapp.generated.resources.connectionError
+import micyou.composeapp.generated.resources.connectionPipeBroken
+import micyou.composeapp.generated.resources.connectionReset
+import micyou.composeapp.generated.resources.connectionSocketClosed
+import micyou.composeapp.generated.resources.errorHandshakeFailedDetailed
+import org.jetbrains.compose.resources.getString
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
@@ -45,7 +54,7 @@ class ConnectionHandler(
         try {
             // 1. 握手
             if (!performHandshake()) {
-                onError("握手失败：与目标设备的握手验证失败。这可能是由于版本不匹配或协议错误。请确保两端使用相同版本的 MicYou。")
+                onError(getString(Res.string.errorHandshakeFailedDetailed))
                 return
             }
 
@@ -69,18 +78,18 @@ class ConnectionHandler(
         } catch (e: Exception) {
             if (!isNormalDisconnect(e)) {
                 val errorMsg = when {
-                    e is EOFException -> "连接意外关闭：远程设备断开了连接。"
-                    e is ClosedReceiveChannelException -> "连接通道已关闭。"
+                    e is EOFException -> getString(Res.string.connectionDisconnected)
+                    e is ClosedReceiveChannelException -> getString(Res.string.connectionChannelClosed)
                     e is IOException -> when {
-                        e.message?.contains("Connection reset", ignoreCase = true) == true -> 
-                            "连接被重置：远程设备强制关闭了连接。"
-                        e.message?.contains("Broken pipe", ignoreCase = true) == true -> 
-                            "管道中断：无法向已关闭的连接发送数据。"
-                        e.message?.contains("Socket closed", ignoreCase = true) == true -> 
-                            "套接字已关闭。"
-                        else -> "连接错误: ${e.message}"
+                        e.message?.contains("Connection reset", ignoreCase = true) == true ->
+                            getString(Res.string.connectionReset)
+                        e.message?.contains("Broken pipe", ignoreCase = true) == true ->
+                            getString(Res.string.connectionPipeBroken)
+                        e.message?.contains("Socket closed", ignoreCase = true) == true ->
+                            getString(Res.string.connectionSocketClosed)
+                        else -> getString(Res.string.connectionError, e.message ?: "")
                     }
-                    else -> "连接错误: ${e.message}"
+                    else -> getString(Res.string.connectionError, e.message ?: "")
                 }
                 Logger.e("ConnectionHandler", errorMsg, e)
                 onError(errorMsg)
@@ -93,7 +102,7 @@ class ConnectionHandler(
     private suspend fun performHandshake(): Boolean {
         try {
             val check1Packet = input.readPacket(CHECK_1.length)
-            val check1String = check1Packet.readText()
+    val check1String = check1Packet.readText()
             
             if (check1String != CHECK_1) {
                 Logger.e("ConnectionHandler", "握手失败: 收到 $check1String")
@@ -120,8 +129,8 @@ class ConnectionHandler(
         for (msg in channel) {
             try {
                 @OptIn(ExperimentalSerializationApi::class)
-                val packetBytes = proto.encodeToByteArray(MessageWrapper.serializer(), msg)
-                val length = packetBytes.size
+    val packetBytes = proto.encodeToByteArray(MessageWrapper.serializer(), msg)
+    val length = packetBytes.size
                 output.writeInt(PACKET_MAGIC)
                 output.writeInt(length)
                 output.writeFully(packetBytes)
@@ -147,8 +156,7 @@ class ConnectionHandler(
                     }
                 }
             }
-
-            val length = input.readInt()
+    val length = input.readInt()
 
             // 包大小验证：保持稳健性，跳过异常包而不是断开连接
             // 2MB 限制防止内存溢出，但不会因为单个异常包就断开整个连接
@@ -166,8 +174,7 @@ class ConnectionHandler(
                 Logger.d("ConnectionHandler", "Received empty packet, skipping")
                 continue
             }
-
-            val packetBytes = ByteArray(length)
+    val packetBytes = ByteArray(length)
             input.readFully(packetBytes)
 
             try {
@@ -176,8 +183,7 @@ class ConnectionHandler(
                 if (wrapper.mute != null) {
                     onMuteStateChanged(wrapper.mute.isMuted)
                 }
-
-                val audioPacket = wrapper.audioPacket?.audioPacket
+    val audioPacket = wrapper.audioPacket?.audioPacket
                 if (audioPacket != null) {
                     onAudioPacketReceived(audioPacket)
                 }

@@ -2,6 +2,10 @@ package com.lanrhyme.micyou.network
 
 import com.lanrhyme.micyou.*
 import com.lanrhyme.micyou.platform.PlatformInfo
+import micyou.composeapp.generated.resources.Res
+import micyou.composeapp.generated.resources.errorBluetoothGeneric
+import micyou.composeapp.generated.resources.errorServerGeneric
+import org.jetbrains.compose.resources.getString
 import io.ktor.utils.io.*
 import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.*
@@ -45,7 +49,7 @@ class LinuxBlueZServer(
                 } catch (e: Exception) {
                     Logger.e("LinuxBlueZServer", "服务器致命错误", e)
                     _state.value = StreamState.Error
-                    _lastError.value = "服务器错误: ${e.message}"
+                    _lastError.value = getString(Res.string.errorServerGeneric, e.message ?: "")
                 } finally {
                     cleanup()
                     if (_state.value != StreamState.Error) {
@@ -86,7 +90,7 @@ class LinuxBlueZServer(
                     Logger.e("LinuxBlueZServer", "蓝牙服务器错误: ${e.message}")
                     if (_state.value != StreamState.Connecting) {
                         _state.value = StreamState.Error
-                        _lastError.value = "蓝牙错误: ${e.message}"
+                        _lastError.value = getString(Res.string.errorBluetoothGeneric, e.message ?: "")
                         delay(5000)
                         _state.value = StreamState.Connecting
                     }
@@ -97,19 +101,16 @@ class LinuxBlueZServer(
 
     private fun registerSppService(): Int {
         releaseRfcomm()
-        
-        val uuid = "0000110100001000800000805F9B34FB"
+    val uuid = "0000110100001000800000805F9B34FB"
         try {
             val process = Runtime.getRuntime().exec(arrayOf("sdptool", "add", "SP", "-a", uuid))
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-
-            var output = ""
+    val reader = BufferedReader(InputStreamReader(process.inputStream))
+    var output = ""
             var line: String?
             while (reader.readLine().also { line = it } != null) {
                 output += line
             }
-
-            val exitCode = process.waitFor()
+    val exitCode = process.waitFor()
             Logger.i("LinuxBlueZServer", "sdptool 退出码: $exitCode")
 
             if (output.contains("Service Added")) {
@@ -132,9 +133,8 @@ class LinuxBlueZServer(
     private fun getLocalBluetoothAddress(): String {
         try {
             val process = Runtime.getRuntime().exec(arrayOf("hciconfig"))
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-
-            var line: String?
+    val reader = BufferedReader(InputStreamReader(process.inputStream))
+    var line: String?
             while (reader.readLine().also { line = it } != null) {
                 if (line?.contains("hci") == true) {
                     val nextLine = reader.readLine()
@@ -168,17 +168,15 @@ class LinuxBlueZServer(
                 rfcommProcess = null
 
                 releaseRfcomm()
-
-                val processBuilder = ProcessBuilder(
+    val processBuilder = ProcessBuilder(
                     "rfcomm", "listen", deviceFile, channel.toString()
                 )
                 processBuilder.redirectErrorStream(true)
-                val process = processBuilder.start()
+    val process = processBuilder.start()
                 rfcommProcess = process
 
                 val reader = BufferedReader(InputStreamReader(process.inputStream))
-
-                var connectionEstablished = false
+    var connectionEstablished = false
                 while (!connectionEstablished && currentCoroutineContext().isActive) {
                     val line = reader.readLine()
                     if (line != null) {
@@ -219,9 +217,8 @@ class LinuxBlueZServer(
             }
 
             Logger.i("LinuxBlueZServer", "打开 RFCOMM 设备: $deviceFile")
-
-            val inputStream = rfcommFile.inputStream()
-            val outputStream = rfcommFile.outputStream()
+    val inputStream = rfcommFile.inputStream()
+    val outputStream = rfcommFile.outputStream()
 
             handleConnection(
                 input = inputStream.toByteReadChannel(),

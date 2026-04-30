@@ -54,6 +54,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import micyou.composeapp.generated.resources.Res
+import micyou.composeapp.generated.resources.cancel
+import micyou.composeapp.generated.resources.confirm
+import micyou.composeapp.generated.resources.hexFormatError
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * HSV 颜色选择器组件
@@ -146,7 +151,7 @@ fun HsvColorPickerDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("取消")
+                        Text(stringResource(Res.string.cancel))
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Button(
@@ -155,7 +160,7 @@ fun HsvColorPickerDialog(
                             onDismiss()
                         }
                     ) {
-                        Text("确定")
+                        Text(stringResource(Res.string.confirm))
                     }
                 }
             }
@@ -250,14 +255,14 @@ fun SaturationValuePanel(
                 .pointerInput(Unit) {
                     detectDragGestures { change, _ ->
                         val sat = (change.position.x / size.width).coerceIn(0f, 1f)
-                        val v = (1f - change.position.y / size.height).coerceIn(0f, 1f)
+    val v = (1f - change.position.y / size.height).coerceIn(0f, 1f)
                         onSaturationValueChanged(sat, v)
                     }
                 }
                 .pointerInput(Unit) {
                     detectTapGestures { offset ->
                         val sat = (offset.x / size.width).coerceIn(0f, 1f)
-                        val v = (1f - offset.y / size.height).coerceIn(0f, 1f)
+    val v = (1f - offset.y / size.height).coerceIn(0f, 1f)
                         onSaturationValueChanged(sat, v)
                     }
                 }
@@ -325,7 +330,6 @@ fun ColorPreview(
             colorToHSV(color.toArgb(), this)
         }
     }
-
     var hexInput by remember(color) {
         mutableStateOf(
             String.format("#%06X", color.toArgb() and 0xFFFFFF)
@@ -333,15 +337,14 @@ fun ColorPreview(
     }
     var inputError by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
-
     val hexString = remember(color) {
         String.format("#%06X", color.toArgb() and 0xFFFFFF)
     }
 
     fun parseHexInput(input: String): Int? {
         val trimmed = input.trim()
-        val hexPattern = Regex("^#([0-9A-Fa-f]{6})$")
-        val match = hexPattern.matchEntire(trimmed) ?: return null
+    val hexPattern = Regex("^#([0-9A-Fa-f]{6})$")
+    val match = hexPattern.matchEntire(trimmed) ?: return null
         return try {
             match.groupValues[1].toLong(16).toInt() or 0xFF000000.toInt()
         } catch (e: NumberFormatException) {
@@ -374,7 +377,7 @@ fun ColorPreview(
                         value = hexInput,
                         onValueChange = { newValue ->
                             hexInput = newValue.uppercase()
-                            val parsed = parseHexInput(newValue)
+    val parsed = parseHexInput(newValue)
                             inputError = parsed == null && newValue.isNotEmpty()
                             if (parsed != null) {
                                 val newColor = Color(parsed)
@@ -400,7 +403,7 @@ fun ColorPreview(
                         ),
                         label = "HEX",
                         supportingText = if (inputError) {
-                            { Text("格式: #RRGGBB", style = MaterialTheme.typography.labelSmall) }
+                            { Text(stringResource(Res.string.hexFormatError), style = MaterialTheme.typography.labelSmall) }
                         } else null
                     )
                 } else {
