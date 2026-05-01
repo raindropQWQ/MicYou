@@ -1041,7 +1041,7 @@ private fun ExpressiveAboutSettings(viewModel: MainViewModel, hazeState: HazeSta
                 Column(modifier = Modifier.weight(1f)) {
                     Text(stringResource(Res.string.developerLabel), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(4.dp))
-                    Text("LanRhyme、ChinsaaWei", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("LanRhyme、ChinsaaWei、ChouChiu", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

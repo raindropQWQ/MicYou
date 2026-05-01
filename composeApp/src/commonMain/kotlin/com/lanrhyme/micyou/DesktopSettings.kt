@@ -1436,7 +1436,7 @@ fun VBCableManagementSection(
                     ) {
                         ListItem(
                             headlineContent = { Text(stringResource(Res.string.developerLabel)) },
-                            supportingContent = { Text("LanRhyme、ChinsaaWei") },
+                            supportingContent = { Text("LanRhyme、ChinsaaWei、ChouChiu") },
                             leadingContent = { Icon(Icons.Rounded.Person, null,modifier = Modifier.size(24.dp)) },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                         )
