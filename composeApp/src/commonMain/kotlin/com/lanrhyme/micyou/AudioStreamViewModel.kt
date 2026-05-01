@@ -46,7 +46,10 @@ data class AudioStreamUiState(
 
     // Performance Settings
     val performanceMode: String = "Default",
-    val performanceConfig: PerformanceConfig = PerformanceConfig.DEFAULT
+    val performanceConfig: PerformanceConfig = PerformanceConfig.DEFAULT,
+
+    // Monitoring Panel State
+    val showMonitoringPanel: Boolean = false
 )
 
 class AudioStreamViewModel : ViewModel() {
@@ -69,6 +72,11 @@ class AudioStreamViewModel : ViewModel() {
     private val audioLevelHistory = AudioLevelHistory(maxDurationSeconds = 10)
     private val _levelHistory = MutableStateFlow<List<AudioLevelHistory.AudioLevelSample>>(emptyList())
     val levelHistory: StateFlow<List<AudioLevelHistory.AudioLevelSample>> = _levelHistory.asStateFlow()
+    
+    // 监控指标历史记录
+    private val metricsHistory = MonitoringMetricsHistory(maxSamples = 120) // 记录约 1 分钟的历史（500ms 间隔）
+    private val _metricsHistoryFlow = MutableStateFlow<List<AudioMetrics>>(emptyList())
+    val metricsHistoryFlow: StateFlow<List<AudioMetrics>> = _metricsHistoryFlow.asStateFlow()
 
     private val settings = SettingsFactory.getSettings()
 
@@ -156,6 +164,8 @@ class AudioStreamViewModel : ViewModel() {
                 if (state == StreamState.Idle) {
                     audioLevelHistory.clear()
                     _levelHistory.value = emptyList()
+                    metricsHistory.clear()
+                    _metricsHistoryFlow.value = emptyList()
                 }
             }
         }
@@ -177,6 +187,16 @@ class AudioStreamViewModel : ViewModel() {
             _audioEngine.audioLevelData.collect { levelData ->
                 audioLevelHistory.addSample(levelData)
                 _levelHistory.value = audioLevelHistory.getSamples()
+            }
+        }
+
+        // 监听音频指标数据并更新历史记录
+        viewModelScope.launch {
+            _audioEngine.audioMetrics.collect { metrics ->
+                if (metrics != null) {
+                    metricsHistory.addSample(metrics)
+                    _metricsHistoryFlow.value = metricsHistory.getSamples()
+                }
             }
         }
 
@@ -512,6 +532,10 @@ class AudioStreamViewModel : ViewModel() {
         }
     }
 
+    fun setMonitoringPanelVisible(visible: Boolean) {
+        _uiState.update { it.copy(showMonitoringPanel = visible) }
+    }
+
     fun dismissFirewallDialog() {
         _uiState.update { it.copy(showFirewallDialog = false, pendingFirewallPort = null) }
     }
@@ -584,14 +608,14 @@ class AudioStreamViewModel : ViewModel() {
     /**
      * 获取峰值电平（最近N秒内）
      */
-    fun getPeakLevel(seconds: Int = 3): Float {
+    suspend fun getPeakLevel(seconds: Int = 3): Float {
         return audioLevelHistory.getPeakInRange(seconds)
     }
 
     /**
      * 获取平均 RMS（最近N秒内）
      */
-    fun getAverageRms(seconds: Int = 3): Float {
+    suspend fun getAverageRms(seconds: Int = 3): Float {
         return audioLevelHistory.getAverageRms(seconds)
     }
 
