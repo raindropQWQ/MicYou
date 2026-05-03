@@ -75,3 +75,7 @@ Made with [contrib.rocks](https://contrib.rocks).
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=LanRhyme/MicYou&type=date&legend=top-left" />
  </picture>
 </a>
+
+## 致谢
+
+特别感谢 [重庆大学开源软件镜像站](https://mirrors.cqu.edu.cn/) 为本项目提供镜像下载服务。
