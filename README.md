@@ -82,5 +82,5 @@ Made with [contrib.rocks](https://contrib.rocks).
 
 Special thanks to [CQU Open Source Software Mirror](https://mirrors.cqu.edu.cn/) for providing a mirror download service for this project.
 
-Special thanks to [MirrorChyan](https://mirrorchyan.com/en/get-start) for providing a high-speed download service for ths project.
+Special thanks to [MirrorChyan](https://mirrorchyan.com/en/get-start) for providing a high-speed mirror download service for ths project.
 
